@@ -1,0 +1,640 @@
+@page "/coleta"
+@namespace MeuApp.Shared.Pages
+@inject IValidadeService ValidadeService
+
+<div class="coleta-page">
+    <div class="coleta-header">
+        <div class="header-titles">
+            <h1 class="page-title">Coleta e Bipagem de Validades</h1>
+            <p class="page-subtitle">Escaneie o código de barras para registrar ou consultar lotes</p>
+        </div>
+
+        @* Seletor de Loja no Topo *@
+        <div class="store-selector-box">
+            <label class="input-label">Loja Selecionada:</label>
+            <select class="form-select-custom" @bind="lojaSelecionadaId" @bind:after="OnLojaAlterada">
+                @foreach (var loja in lojas)
+                {
+                    <option value="@loja.Id">@loja.Nome (@loja.CodigoLoja)</option>
+                }
+            </select>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrEmpty(feedbackMensagem))
+    {
+        <div class="alert-banner @(feedbackTipo == "success" ? "alert-success" : "alert-info")">
+            <span>@feedbackMensagem</span>
+            <button type="button" class="btn-close-alert" @onclick="() => feedbackMensagem = string.Empty">×</button>
+        </div>
+    }
+
+    @* Campo de Bipagem com Autofocus *@
+    <div class="scanner-card">
+        <form @onsubmit="BuscarOuBipar" class="scanner-form">
+            <div class="scanner-input-group">
+                <span class="scanner-icon">📟</span>
+                <input @ref="barcodeInputRef"
+                       type="text" 
+                       class="scanner-input" 
+                       placeholder="Bipar código de barras ou digitar (pressione Enter)..." 
+                       @bind="codigoBarrasInput" 
+                       autofocus />
+                <button type="submit" class="btn-buscar">
+                    Buscar / Bipar
+                </button>
+            </div>
+        </form>
+
+        @if (buscou && (produtoEncontrado != null || modoNovoProdutoNoCatalogo))
+        {
+            <div class="scanner-actions">
+                <button type="button" class="btn-novo-scan" @onclick="ReiniciarBusca">
+                    🔄 Bipar Outro Produto
+                </button>
+            </div>
+        }
+    </div>
+
+    @* Cenário 1: Produto Encontrado no Catálogo Geral *@
+    @if (produtoEncontrado != null)
+    {
+        <div class="produto-encontrado-container">
+            @* Cabeçalho do Produto *@
+            <div class="produto-header-card">
+                <div class="produto-info">
+                    <div class="badge-row">
+                        <span class="badge-loja">@LojaSelecionadaNome</span>
+                        <span class="badge-catalogo">✓ Catálogo Global</span>
+                    </div>
+                    <h2 class="produto-nome">@produtoEncontrado.Nome</h2>
+                    <span class="produto-codigo">Código de Barras: <strong>@produtoEncontrado.CodigoBarras</strong></span>
+                </div>
+                <div class="lotes-count-badge">
+                    <span>@validadesDestaLoja.Count lote(s) nesta loja</span>
+                </div>
+            </div>
+
+            @* Subcenário 1.A: Já existem lotes ativos deste produto NESTA LOJA *@
+            @if (validadesDestaLoja.Count > 0)
+            {
+                <div class="section-box">
+                    <h3 class="section-title">📅 Lotes Ativos nesta Loja</h3>
+                    <div class="tabela-responsive-wrapper">
+                        <table class="tabela-lotes">
+                            <thead>
+                                <tr>
+                                    <th>Data de Validade</th>
+                                    <th>Data Coleta</th>
+                                    <th>Em Promoção</th>
+                                    <th>Situação</th>
+                                    <th style="text-align: right;">Ação</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var val in validadesDestaLoja)
+                                {
+                                    <tr class="@(val.EstaVencido ? "row-vencido" : "")">
+                                        <td>
+                                            <strong class="data-destaque">@val.DataValidade.ToString("dd/MM/yyyy")</strong>
+                                        </td>
+                                        <td>@val.DataColeta.ToString("dd/MM/yyyy")</td>
+                                        <td>
+                                            <span class="badge-promo @(val.EmPromocao ? "badge-promo-sim" : "badge-promo-nao")">
+                                                @(val.EmPromocao ? "Sim" : "Não")
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span class="texto-prazo @(val.EstaVencido ? "prazo-alerta" : "")">
+                                                @val.MensagemPrazo
+                                            </span>
+                                        </td>
+                                        <td style="text-align: right;">
+                                            <div class="table-acoes-sm">
+                                                <button type="button" class="btn-copiar-sm" @onclick="() => AbrirModalCopiar(val)" title="Copiar ou Transferir para outra loja">
+                                                    📋 Replicar
+                                                </button>
+                                                <button type="button" class="btn-dar-baixa-sm" @onclick="() => AbrirModalBaixa(val)">
+                                                    Dar Baixa
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                @* Formulário para Adicionar Mais uma Data de Validade para este Produto *@
+                <div class="section-box novo-lote-box">
+                    <h3 class="section-title">➕ Adicionar Nova Validade para este Produto</h3>
+                    <div class="form-novo-lote">
+                        <div class="field-group">
+                            <label class="field-label">Data de Validade: *</label>
+                            <input type="date" class="form-input" @bind="novaDataValidade" />
+                        </div>
+
+                        <div class="field-group-checkbox">
+                            <label class="checkbox-label">
+                                <input type="checkbox" @bind="novoLoteEmPromocao" />
+                                <span>Colocar em Promoção imediata</span>
+                            </label>
+                        </div>
+
+                        @* Seleção de Lojas para Aplicação *@
+                        <div class="lojas-alvo-container">
+                            <div class="lojas-alvo-header">
+                                <label class="lojas-alvo-label">Lojas para salvar:</label>
+                                <button type="button" 
+                                        class="btn-selecionar-todas-lojas @(TodasLojasSelecionadas ? "todas-ativas" : "")"
+                                        @onclick="AlternarSelecionarTodasLojas">
+                                    @(TodasLojasSelecionadas ? "✓ Todas as Lojas Selecionadas" : "☐ Selecionar TODAS as Lojas")
+                                </button>
+                            </div>
+                            <div class="lojas-chips-grid">
+                                @foreach (var loja in lojas)
+                                {
+                                    var isSel = lojasAlvoIds.Contains(loja.Id);
+                                    <label class="loja-chip-toggle @(isSel ? "loja-chip-selected" : "")">
+                                        <input type="checkbox" 
+                                               checked="@isSel" 
+                                               @onchange="(e) => ToggleLojaAlvo(loja.Id, (bool)e.Value!)" />
+                                        <span>@loja.Nome</span>
+                                    </label>
+                                }
+                            </div>
+                        </div>
+
+                        <button type="button" class="btn-adicionar-lote" @onclick="AdicionarNovoLote">
+                            @TextoBotaoGravarLote
+                        </button>
+                    </div>
+                </div>
+            }
+            @* Subcenário 1.B: Produto já existe no Catálogo, mas AINDA NÃO TEM LOTE NESTA LOJA *@
+            else
+            {
+                <div class="section-box aproveitamento-box">
+                    <div class="card-aviso-aproveitamento">
+                        <span class="aviso-icon">🎉</span>
+                        <div>
+                            <h3 class="aviso-title">Produto Já Cadastrado no App!</h3>
+                            <p class="aviso-text">
+                                O produto <strong>"@produtoEncontrado.Nome"</strong> foi localizado no catálogo geral.
+                                Não é necessário digitar o nome novamente! Basta registrar a validade:
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="form-novo-lote">
+                        <div class="field-group">
+                            <label class="field-label">Data de Validade: *</label>
+                            <input type="date" class="form-input" @bind="novaDataValidade" />
+                        </div>
+
+                        <div class="field-group-checkbox">
+                            <label class="checkbox-label">
+                                <input type="checkbox" @bind="novoLoteEmPromocao" />
+                                <span>Item em Promoção de Validade</span>
+                            </label>
+                        </div>
+
+                        @* Seleção de Lojas para Aplicação *@
+                        <div class="lojas-alvo-container">
+                            <div class="lojas-alvo-header">
+                                <label class="lojas-alvo-label">Lojas para salvar:</label>
+                                <button type="button" 
+                                        class="btn-selecionar-todas-lojas @(TodasLojasSelecionadas ? "todas-ativas" : "")"
+                                        @onclick="AlternarSelecionarTodasLojas">
+                                    @(TodasLojasSelecionadas ? "✓ Todas as Lojas Selecionadas" : "☐ Selecionar TODAS as Lojas")
+                                </button>
+                            </div>
+                            <div class="lojas-chips-grid">
+                                @foreach (var loja in lojas)
+                                {
+                                    var isSel = lojasAlvoIds.Contains(loja.Id);
+                                    <label class="loja-chip-toggle @(isSel ? "loja-chip-selected" : "")">
+                                        <input type="checkbox" 
+                                               checked="@isSel" 
+                                               @onchange="(e) => ToggleLojaAlvo(loja.Id, (bool)e.Value!)" />
+                                        <span>@loja.Nome</span>
+                                    </label>
+                                }
+                            </div>
+                        </div>
+
+                        <button type="button" class="btn-adicionar-lote" @onclick="AdicionarNovoLote">
+                            @TextoBotaoGravarLote
+                        </button>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+    @* Cenário 2: Produto INÉDITO no Catálogo Geral *@
+    else if (modoNovoProdutoNoCatalogo)
+    {
+        <div class="novo-produto-container">
+            <div class="card-aviso-novo">
+                <span class="aviso-icon">✨</span>
+                <div>
+                    <h3 class="aviso-title">Produto Novo / Inédito no Catálogo</h3>
+                    <p class="aviso-text">Cadastre o nome do produto uma única vez. Ele ficará disponível para todas as lojas da rede!</p>
+                </div>
+            </div>
+
+            <div class="form-cadastro-card">
+                <div class="form-grid">
+                    <div class="field-group">
+                        <label class="field-label">Código de Barras:</label>
+                        <input type="text" class="form-input form-input-readonly" value="@codigoBarrasInput" readonly />
+                    </div>
+
+                    <div class="field-group full-width">
+                        <label class="field-label">Nome do Produto (disponível para todas as lojas): *</label>
+                        <input type="text" 
+                               class="form-input" 
+                               placeholder="Ex: Iogurte Morango 170g" 
+                               @bind="novoProdutoNome" />
+                    </div>
+
+                    <div class="field-group">
+                        <label class="field-label">Primeira Data de Validade: *</label>
+                        <input type="date" class="form-input" @bind="novaDataValidade" />
+                    </div>
+
+                    <div class="field-group-checkbox">
+                        <label class="checkbox-label">
+                            <input type="checkbox" @bind="novoLoteEmPromocao" />
+                            <span>Item em Promoção de Validade</span>
+                        </label>
+                    </div>
+
+                    @* Seleção de Lojas para Aplicação *@
+                    <div class="lojas-alvo-container full-width">
+                        <div class="lojas-alvo-header">
+                            <label class="lojas-alvo-label">Lojas para registrar este produto:</label>
+                            <button type="button" 
+                                    class="btn-selecionar-todas-lojas @(TodasLojasSelecionadas ? "todas-ativas" : "")"
+                                    @onclick="AlternarSelecionarTodasLojas">
+                                @(TodasLojasSelecionadas ? "✓ Todas as Lojas Selecionadas" : "☐ Selecionar TODAS as Lojas")
+                            </button>
+                        </div>
+                        <div class="lojas-chips-grid">
+                            @foreach (var loja in lojas)
+                            {
+                                var isSel = lojasAlvoIds.Contains(loja.Id);
+                                <label class="loja-chip-toggle @(isSel ? "loja-chip-selected" : "")">
+                                    <input type="checkbox" 
+                                           checked="@isSel" 
+                                           @onchange="(e) => ToggleLojaAlvo(loja.Id, (bool)e.Value!)" />
+                                    <span>@loja.Nome</span>
+                                </label>
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn-cancelar-novo" @onclick="ReiniciarBusca">Cancelar</button>
+                    <button type="button" class="btn-salvar-produto" @onclick="SalvarNovoProduto">
+                        @TextoBotaoSalvarNovoProduto
+                    </button>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@* Modal de Cópia / Transferência *@
+<ModalCopiarValidade IsVisible="exibirModalCopiar"
+                     Registro="registroParaCopiar"
+                     Lojas="lojas"
+                     OnConfirmar="ConfirmarCopia"
+                     OnCancelar="FecharModalCopiar" />
+
+@* Modal Compartilhado de Baixa *@
+<ModalBaixa IsVisible="exibirModalBaixa"
+            Registro="registroParaBaixa"
+            OnConfirmar="ConfirmarBaixa"
+            OnCancelar="FecharModalBaixa" />
+
+@code {
+    private List<Loja> lojas = new();
+    private int lojaSelecionadaId;
+    private string LojaSelecionadaNome => lojas.FirstOrDefault(l => l.Id == lojaSelecionadaId)?.Nome ?? "Loja";
+
+    private HashSet<int> lojasAlvoIds = new();
+    private bool TodasLojasSelecionadas => lojas.Count > 0 && lojasAlvoIds.Count == lojas.Count;
+
+    private string codigoBarrasInput = string.Empty;
+    private bool buscou = false;
+    private bool modoNovoProdutoNoCatalogo = false;
+    private Produto? produtoEncontrado = null;
+    private List<RegistroValidade> validadesDestaLoja = new();
+
+    // Campos de novo produto / lote
+    private string novoProdutoNome = string.Empty;
+    private DateTime novaDataValidade = DateTime.Today.AddDays(7);
+    private bool novoLoteEmPromocao = false;
+
+    // Feedback
+    private string feedbackMensagem = string.Empty;
+    private string feedbackTipo = "success";
+
+    // Modal de Baixa
+    private bool exibirModalBaixa = false;
+    private RegistroValidade? registroParaBaixa = null;
+
+    // Modal de Copiar / Transferir
+    private bool exibirModalCopiar = false;
+    private RegistroValidade? registroParaCopiar = null;
+
+    private ElementReference barcodeInputRef;
+
+    private string TextoBotaoGravarLote
+    {
+        get
+        {
+            if (TodasLojasSelecionadas)
+                return $"Gravar Validade para TODAS as Lojas ({lojas.Count})";
+            if (lojasAlvoIds.Count > 1)
+                return $"Gravar Validade para {lojasAlvoIds.Count} Lojas Selecionadas";
+            var loja = lojas.FirstOrDefault(l => lojasAlvoIds.Contains(l.Id));
+            return $"Gravar Validade para {loja?.Nome ?? LojaSelecionadaNome}";
+        }
+    }
+
+    private string TextoBotaoSalvarNovoProduto
+    {
+        get
+        {
+            if (TodasLojasSelecionadas)
+                return $"Salvar no Catálogo e Registrar para TODAS as Lojas ({lojas.Count})";
+            if (lojasAlvoIds.Count > 1)
+                return $"Salvar no Catálogo e Registrar para {lojasAlvoIds.Count} Lojas";
+            return "Salvar no Catálogo e Registrar Validade";
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await ValidadeService.InicializarBancoESeedAsync();
+        lojas = await ValidadeService.GetLojasAsync();
+
+        if (lojas.Any())
+        {
+            lojaSelecionadaId = lojas.First().Id;
+            lojasAlvoIds.Clear();
+            lojasAlvoIds.Add(lojaSelecionadaId);
+        }
+    }
+
+    private async Task OnLojaAlterada()
+    {
+        if (!lojasAlvoIds.Contains(lojaSelecionadaId))
+        {
+            lojasAlvoIds.Add(lojaSelecionadaId);
+        }
+
+        if (produtoEncontrado != null)
+        {
+            validadesDestaLoja = await ValidadeService.GetValidadesAtivasDoProdutoNaLojaAsync(produtoEncontrado.Id, lojaSelecionadaId);
+        }
+        feedbackMensagem = string.Empty;
+    }
+
+    private void AlternarSelecionarTodasLojas()
+    {
+        if (TodasLojasSelecionadas)
+        {
+            lojasAlvoIds.Clear();
+            lojasAlvoIds.Add(lojaSelecionadaId);
+        }
+        else
+        {
+            lojasAlvoIds = lojas.Select(l => l.Id).ToHashSet();
+        }
+    }
+
+    private void ToggleLojaAlvo(int lojaId, bool ativo)
+    {
+        if (ativo)
+        {
+            lojasAlvoIds.Add(lojaId);
+        }
+        else
+        {
+            lojasAlvoIds.Remove(lojaId);
+        }
+    }
+
+    private async Task BuscarOuBipar()
+    {
+        if (string.IsNullOrWhiteSpace(codigoBarrasInput))
+        {
+            feedbackMensagem = "Por favor, digite ou bipe um código de barras.";
+            feedbackTipo = "info";
+            return;
+        }
+
+        feedbackMensagem = string.Empty;
+        buscou = true;
+
+        // Busca pelo código de barras no catálogo global compartilhado
+        produtoEncontrado = await ValidadeService.BuscarProdutoPorCodigoBarrasAsync(codigoBarrasInput.Trim());
+
+        if (produtoEncontrado == null)
+        {
+            // Produto não existe no sistema em nenhuma loja
+            modoNovoProdutoNoCatalogo = true;
+            novoProdutoNome = string.Empty;
+            novaDataValidade = DateTime.Today.AddDays(7);
+            novoLoteEmPromocao = false;
+            validadesDestaLoja.Clear();
+        }
+        else
+        {
+            // Produto existe no catálogo! Carrega validades ativas desta loja
+            modoNovoProdutoNoCatalogo = false;
+            validadesDestaLoja = await ValidadeService.GetValidadesAtivasDoProdutoNaLojaAsync(produtoEncontrado.Id, lojaSelecionadaId);
+            novaDataValidade = DateTime.Today.AddDays(7);
+            novoLoteEmPromocao = false;
+        }
+
+        // Garante que ao menos a loja atual está selecionada nas lojas alvo
+        if (!lojasAlvoIds.Any())
+        {
+            lojasAlvoIds.Add(lojaSelecionadaId);
+        }
+    }
+
+    private async Task SalvarNovoProduto()
+    {
+        if (string.IsNullOrWhiteSpace(novoProdutoNome))
+        {
+            feedbackMensagem = "Informe o nome do produto para prosseguir.";
+            feedbackTipo = "info";
+            return;
+        }
+
+        if (lojasAlvoIds.Count == 0)
+        {
+            feedbackMensagem = "Selecione ao menos uma loja para salvar a validade.";
+            feedbackTipo = "info";
+            return;
+        }
+
+        produtoEncontrado = await ValidadeService.CadastrarProdutoComValidadeMultiplasLojasAsync(
+            lojasAlvoIds,
+            codigoBarrasInput.Trim(),
+            novoProdutoNome.Trim(),
+            novaDataValidade,
+            novoLoteEmPromocao
+        );
+
+        modoNovoProdutoNoCatalogo = false;
+        validadesDestaLoja = await ValidadeService.GetValidadesAtivasDoProdutoNaLojaAsync(produtoEncontrado.Id, lojaSelecionadaId);
+
+        if (TodasLojasSelecionadas)
+        {
+            feedbackMensagem = $"Produto '{produtoEncontrado.Nome}' salvo no catálogo e validade gravada para TODAS as {lojas.Count} lojas!";
+        }
+        else
+        {
+            feedbackMensagem = $"Produto '{produtoEncontrado.Nome}' salvo no catálogo e validade gravada para {lojasAlvoIds.Count} loja(s)!";
+        }
+        feedbackTipo = "success";
+    }
+
+    private async Task AdicionarNovoLote()
+    {
+        if (produtoEncontrado == null) return;
+
+        if (lojasAlvoIds.Count == 0)
+        {
+            feedbackMensagem = "Por favor, selecione ao menos uma loja para salvar a validade.";
+            feedbackTipo = "info";
+            return;
+        }
+
+        await ValidadeService.AdicionarValidadeMultiplasLojasAsync(
+            produtoEncontrado.Id,
+            lojasAlvoIds,
+            novaDataValidade,
+            novoLoteEmPromocao
+        );
+
+        validadesDestaLoja = await ValidadeService.GetValidadesAtivasDoProdutoNaLojaAsync(produtoEncontrado.Id, lojaSelecionadaId);
+
+        if (TodasLojasSelecionadas)
+        {
+            feedbackMensagem = $"Validade ({novaDataValidade:dd/MM/yyyy}) salva com sucesso para TODAS as {lojas.Count} lojas!";
+        }
+        else if (lojasAlvoIds.Count > 1)
+        {
+            feedbackMensagem = $"Validade ({novaDataValidade:dd/MM/yyyy}) registrada para '{produtoEncontrado.Nome}' em {lojasAlvoIds.Count} lojas!";
+        }
+        else
+        {
+            var lojaNome = lojas.FirstOrDefault(l => lojasAlvoIds.Contains(l.Id))?.Nome ?? LojaSelecionadaNome;
+            feedbackMensagem = $"Validade ({novaDataValidade:dd/MM/yyyy}) registrada para '{produtoEncontrado.Nome}' em {lojaNome}!";
+        }
+
+        feedbackTipo = "success";
+        novaDataValidade = DateTime.Today.AddDays(7);
+        novoLoteEmPromocao = false;
+    }
+
+    private void AbrirModalBaixa(RegistroValidade reg)
+    {
+        registroParaBaixa = reg;
+        exibirModalBaixa = true;
+    }
+
+    private void FecharModalBaixa()
+    {
+        exibirModalBaixa = false;
+        registroParaBaixa = null;
+    }
+
+    private async Task ConfirmarBaixa(string motivo)
+    {
+        if (registroParaBaixa != null)
+        {
+            await ValidadeService.DarBaixaAsync(registroParaBaixa.Id, motivo);
+            feedbackMensagem = $"Baixa registrada com sucesso (Motivo: {motivo})!";
+            feedbackTipo = "success";
+
+            // Recarregar validades desta loja
+            if (produtoEncontrado != null)
+            {
+                validadesDestaLoja = await ValidadeService.GetValidadesAtivasDoProdutoNaLojaAsync(produtoEncontrado.Id, lojaSelecionadaId);
+            }
+        }
+        FecharModalBaixa();
+    }
+
+    // Modal Copiar / Transferir
+    private void AbrirModalCopiar(RegistroValidade reg)
+    {
+        registroParaCopiar = reg;
+        exibirModalCopiar = true;
+    }
+
+    private void FecharModalCopiar()
+    {
+        exibirModalCopiar = false;
+        registroParaCopiar = null;
+    }
+
+    private async Task ConfirmarCopia(ModalCopiarValidade.OpcaoCopiarValidadeArgs args)
+    {
+        if (registroParaCopiar == null) return;
+        var nomeProd = produtoEncontrado?.Nome ?? "Produto";
+
+        if (args.Modo == "transferir")
+        {
+            await ValidadeService.TransferirValidadeAsync(args.RegistroId, args.LojaDestinoId);
+            feedbackMensagem = $"Lote de '{nomeProd}' transferido para {args.NomeLojaDestino} com sucesso!";
+        }
+        else
+        {
+            if (args.ParaTodas)
+            {
+                var total = await ValidadeService.CopiarValidadeParaTodasLojasAsync(args.RegistroId);
+                feedbackMensagem = total > 0 
+                    ? $"Lote de '{nomeProd}' replicado com sucesso para todas as outras {total} lojas!" 
+                    : $"O lote de '{nomeProd}' já existia nas outras lojas.";
+            }
+            else
+            {
+                var copia = await ValidadeService.CopiarValidadeAsync(args.RegistroId, args.LojaDestinoId);
+                feedbackMensagem = copia != null 
+                    ? $"Lote de '{nomeProd}' copiado para {args.NomeLojaDestino} com sucesso!" 
+                    : $"A loja {args.NomeLojaDestino} já possui este lote ativo.";
+            }
+        }
+
+        feedbackTipo = "success";
+        FecharModalCopiar();
+
+        if (produtoEncontrado != null)
+        {
+            validadesDestaLoja = await ValidadeService.GetValidadesAtivasDoProdutoNaLojaAsync(produtoEncontrado.Id, lojaSelecionadaId);
+        }
+    }
+
+    private void ReiniciarBusca()
+    {
+        codigoBarrasInput = string.Empty;
+        produtoEncontrado = null;
+        modoNovoProdutoNoCatalogo = false;
+        buscou = false;
+        validadesDestaLoja.Clear();
+        feedbackMensagem = string.Empty;
+        lojasAlvoIds.Clear();
+        lojasAlvoIds.Add(lojaSelecionadaId);
+    }
+}

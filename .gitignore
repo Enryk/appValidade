@@ -1,0 +1,54 @@
+## Visual Studio / .NET Core / MAUI gitignore
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+
+# Visual Studio files
+.vs/
+*.user
+*.userosscache
+*.suo
+*.userprefs
+*.sln.docstates
+
+# User-specific files
+*.rsuser
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Build results
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Rr]eleases/
+x64/
+x86/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+bld/
+[Bb]in/[Dd]ebug*/
+[Bb]in/[Rr]elease*/
+[Oo]bj/[Dd]ebug*/
+[Oo]bj/[Rr]elease*/
+
+# MAUI / Android / iOS build artifacts
+*.apk
+*.aab
+*.ipa
+*.appbundle
+*.dSYM.zip
+*.dSYM
+
+# SQLite Local Databases
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+
+# OS generated files
+.DS_Store
+Thumbs.db

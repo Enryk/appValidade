@@ -1,0 +1,232 @@
+@page "/historico"
+@namespace MeuApp.Shared.Pages
+@inject IValidadeService ValidadeService
+@inject IJSRuntime JS
+
+<div class="historico-page">
+    <header class="page-header">
+        <div>
+            <h1 class="page-title">Histórico e Auditoria de Baixas</h1>
+            <p class="page-subtitle">Rastreabilidade completa de itens descartados, vendidos em promoção e ajustes</p>
+        </div>
+
+        <div class="header-actions">
+            <button type="button" class="btn-exportar-csv" @onclick="ExportarCsv" disabled="@(registrosBaixados.Count == 0)">
+                📥 Exportar Histórico (CSV)
+            </button>
+        </div>
+    </header>
+
+    @if (!string.IsNullOrEmpty(feedbackToast))
+    {
+        <div class="feedback-toast">
+            <span>@feedbackToast</span>
+        </div>
+    }
+
+    <!-- Barra de Filtros de Auditoria -->
+    <div class="filtros-card">
+        <div class="filtros-grid">
+            <!-- Filtro de Loja -->
+            <div class="filtro-campo">
+                <label class="filtro-label">Loja:</label>
+                <select class="form-select" @bind="lojaFiltroId" @bind:after="CarregarHistorico">
+                    <option value="0">🏬 Todas as Lojas</option>
+                    @foreach (var loja in lojas)
+                    {
+                        <option value="@loja.Id">@loja.Nome (@loja.CodigoLoja)</option>
+                    }
+                </select>
+            </div>
+
+            <!-- Período de Baixa: Data Inicial -->
+            <div class="filtro-campo">
+                <label class="filtro-label">Baixa a partir de:</label>
+                <input type="date" class="form-input" @bind="dataInicioFiltro" @bind:after="CarregarHistorico" />
+            </div>
+
+            <!-- Período de Baixa: Data Final -->
+            <div class="filtro-campo">
+                <label class="filtro-label">Baixa até:</label>
+                <input type="date" class="form-input" @bind="dataFimFiltro" @bind:after="CarregarHistorico" />
+            </div>
+
+            <!-- Filtro por Motivo -->
+            <div class="filtro-campo">
+                <label class="filtro-label">Motivo da Baixa:</label>
+                <select class="form-select" @bind="motivoFiltro" @bind:after="CarregarHistorico">
+                    <option value="Todos">Todos os Motivos</option>
+                    <option value="Descarte/Vencido">🗑️ Descarte / Vencido</option>
+                    <option value="Vendido em Promoção">🏷️ Vendido em Promoção</option>
+                    <option value="Ajuste de Estoque">🔄 Ajuste de Estoque</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="filtros-actions">
+            <button type="button" class="btn-reset-filtros" @onclick="ResetarFiltros">
+                Limpar Filtros
+            </button>
+        </div>
+    </div>
+
+    <!-- Tabela de Auditoria -->
+    <div class="tabela-card">
+        <div class="tabela-header">
+            <h2 class="tabela-title">Registros Baixados (@registrosBaixados.Count)</h2>
+            <span class="tabela-sub">Exibindo os itens mais recentes primeiro</span>
+        </div>
+
+        @if (carregando)
+        {
+            <div class="estado-box">Carregando histórico de baixas...</div>
+        }
+        else if (registrosBaixados.Count == 0)
+        {
+            <div class="estado-box empty">
+                <span class="empty-icon">📂</span>
+                <h3>Nenhum registro de baixa encontrado</h3>
+                <p>Altere os filtros de data, loja ou motivo para localizar registros.</p>
+            </div>
+        }
+        else
+        {
+            <div class="tabela-responsive">
+                <table class="tabela-auditoria">
+                    <thead>
+                        <tr>
+                            <th>Loja</th>
+                            <th>Código</th>
+                            <th>Produto</th>
+                            <th>Validade Original</th>
+                            <th>Data Coleta</th>
+                            <th>Data da Baixa</th>
+                            <th>Motivo Registrado</th>
+                            <th>Promoção</th>
+                            <th style="text-align: right;">Ação</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var reg in registrosBaixados)
+                        {
+                            <tr>
+                                <td>
+                                    <span class="chip-loja">@(reg.Loja?.Nome ?? "Loja")</span>
+                                </td>
+                                <td>
+                                    <code class="chip-codigo">@(reg.Produto?.CodigoBarras ?? "-")</code>
+                                </td>
+                                <td>
+                                    <strong class="produto-nome">@(reg.Produto?.Nome ?? "-")</strong>
+                                </td>
+                                <td>
+                                    <span class="data-validade-txt">@reg.DataValidade.ToString("dd/MM/yyyy")</span>
+                                </td>
+                                <td>@reg.DataColeta.ToString("dd/MM/yyyy")</td>
+                                <td>
+                                    <div class="data-baixa-bloco">
+                                        <strong>@reg.DataBaixa?.ToString("dd/MM/yyyy")</strong>
+                                        <small class="hora-baixa">@reg.DataBaixa?.ToString("HH:mm")</small>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="badge-motivo @GetMotivoBadgeClass(reg.MotivoBaixa)">
+                                        @reg.MotivoBaixa
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="badge-promo @(reg.EmPromocao ? "promo-sim" : "promo-nao")">
+                                        @(reg.EmPromocao ? "Sim" : "Não")
+                                    </span>
+                                </td>
+                                <td style="text-align: right;">
+                                    <button type="button" 
+                                            class="btn-desfazer-baixa" 
+                                            title="Reativar e devolver ao monitoramento ativo"
+                                            @onclick="() => ReativarRegistro(reg)">
+                                        ↩️ Desfazer Baixa
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    private List<Loja> lojas = new();
+    private int lojaFiltroId = 0;
+    private DateTime? dataInicioFiltro = DateTime.Today.AddDays(-30);
+    private DateTime? dataFimFiltro = DateTime.Today.AddDays(1);
+    private string motivoFiltro = "Todos";
+
+    private List<RegistroValidade> registrosBaixados = new();
+    private bool carregando = true;
+    private string feedbackToast = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        lojas = await ValidadeService.GetLojasAsync();
+        await CarregarHistorico();
+    }
+
+    private async Task CarregarHistorico()
+    {
+        carregando = true;
+        int? lojaId = lojaFiltroId > 0 ? lojaFiltroId : null;
+
+        registrosBaixados = await ValidadeService.GetHistoricoBaixasAsync(
+            lojaId,
+            dataInicioFiltro,
+            dataFimFiltro,
+            motivoFiltro
+        );
+
+        carregando = false;
+    }
+
+    private async Task ResetarFiltros()
+    {
+        lojaFiltroId = 0;
+        dataInicioFiltro = DateTime.Today.AddDays(-30);
+        dataFimFiltro = DateTime.Today.AddDays(1);
+        motivoFiltro = "Todos";
+        await CarregarHistorico();
+    }
+
+    private async Task ReativarRegistro(RegistroValidade reg)
+    {
+        await ValidadeService.DesfazerBaixaAsync(reg.Id);
+        feedbackToast = $"Lote de '{reg.Produto?.Nome}' reativado com sucesso e retornado ao monitoramento!";
+        await CarregarHistorico();
+
+        _ = Task.Run(async () =>
+        {
+            await Task.Delay(3000);
+            feedbackToast = string.Empty;
+            await InvokeAsync(StateHasChanged);
+        });
+    }
+
+    private async Task ExportarCsv()
+    {
+        if (registrosBaixados.Count == 0) return;
+
+        var csvConteudo = ValidadeService.GerarCsvHistorico(registrosBaixados);
+        var nomeArquivo = $"Historico_Validades_Baixadas_{DateTime.Now:yyyyMMdd_HHmmss}.csv";
+
+        await JS.InvokeVoidAsync("downloadCsvFile", nomeArquivo, csvConteudo);
+        feedbackToast = $"Arquivo CSV '{nomeArquivo}' gerado para download com sucesso!";
+    }
+
+    private string GetMotivoBadgeClass(string? motivo) => motivo switch
+    {
+        "Descarte/Vencido" => "motivo-descarte",
+        "Vendido em Promoção" => "motivo-vendido",
+        "Ajuste de Estoque" => "motivo-ajuste",
+        _ => "motivo-outro"
+    };
+}

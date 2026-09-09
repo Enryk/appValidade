@@ -1,0 +1,410 @@
+@page "/"
+@namespace MeuApp.Shared.Pages
+@inject IValidadeService ValidadeService
+
+<div class="monitoramento-page">
+    <header class="page-header">
+        <div class="header-titles">
+            <h1 class="page-title">Monitoramento de Validades</h1>
+            <p class="page-subtitle">Acompanhamento e controle de prazos por loja em tempo real</p>
+        </div>
+
+        <div class="header-actions">
+            <a href="coleta" class="btn-ir-coleta">
+                📟 Bipar / Coletar Validades
+            </a>
+        </div>
+    </header>
+
+    <!-- Resumo em Métricas -->
+    <div class="stats-grid">
+        <div class="stat-card" @onclick='() => AplicarFiltroRapido("todos")'>
+            <span class="stat-num">@validades.Count</span>
+            <span class="stat-lbl">Total Ativos</span>
+        </div>
+        <div class="stat-card stat-danger" @onclick='() => AplicarFiltroRapido("vencidos")'>
+            <span class="stat-num">@validades.Count(v => v.EstaVencido)</span>
+            <span class="stat-lbl">Vencidos (Alerta)</span>
+        </div>
+        <div class="stat-card stat-warning" @onclick='() => AplicarFiltroRapido("7dias")'>
+            <span class="stat-num">@validades.Count(v => !v.EstaVencido && v.DiasRestantes <= 7)</span>
+            <span class="stat-lbl">Até 7 Dias</span>
+        </div>
+        <div class="stat-card stat-promo">
+            <span class="stat-num">@validades.Count(v => v.EmPromocao)</span>
+            <span class="stat-lbl">Em Promoção</span>
+        </div>
+    </div>
+
+    <!-- Barra de Filtro de Loja e Filtros Rápidos -->
+    <div class="filtros-container">
+        <div class="filtro-linha-superior">
+            <div class="filtro-loja-group">
+                <label class="filtro-label">Filtrar por Loja:</label>
+                <select class="select-loja" @bind="lojaFiltroId" @bind:after="CarregarValidades">
+                    <option value="0">🏬 Todas as Lojas</option>
+                    @foreach (var loja in lojas)
+                    {
+                        <option value="@loja.Id">@loja.Nome (@loja.CodigoLoja)</option>
+                    }
+                </select>
+            </div>
+
+            <div class="atalhos-filtros-rapidos">
+                <button type="button" 
+                        class="btn-filtro-atalho @(filtroRapido == "7dias" ? "active" : "")"
+                        @onclick='() => AplicarFiltroRapido("7dias")'>
+                    ⏳ Até 7 Dias
+                </button>
+                <button type="button" 
+                        class="btn-filtro-atalho @(filtroRapido == "10dias" ? "active" : "")"
+                        @onclick='() => AplicarFiltroRapido("10dias")'>
+                    ⏳ Até 10 Dias
+                </button>
+                <button type="button" 
+                        class="btn-filtro-atalho @(filtroRapido == "15dias" ? "active" : "")"
+                        @onclick='() => AplicarFiltroRapido("15dias")'>
+                    ⏳ Até 15 Dias
+                </button>
+                <button type="button" 
+                        class="btn-filtro-atalho btn-atalho-vencido @(filtroRapido == "vencidos" ? "active" : "")"
+                        @onclick='() => AplicarFiltroRapido("vencidos")'>
+                    🚨 Vencidos
+                </button>
+                <button type="button" 
+                        class="btn-filtro-atalho @(filtroRapido == "personalizado" ? "active" : "")"
+                        @onclick='() => AplicarFiltroRapido("personalizado")'>
+                    📅 Personalizado
+                </button>
+                <button type="button" 
+                        class="btn-filtro-atalho @(filtroRapido == "todos" ? "active" : "")"
+                        @onclick='() => AplicarFiltroRapido("todos")'>
+                    Todos
+                </button>
+            </div>
+        </div>
+
+        <!-- Painel de Intervalo Personalizado -->
+        @if (filtroRapido == "personalizado")
+        {
+            <div class="painel-personalizado">
+                <div class="custom-date-group">
+                    <label class="filtro-label">Data Inicial:</label>
+                    <input type="date" class="date-input" @bind="dataInicioPersonalizada" />
+                </div>
+                <div class="custom-date-group">
+                    <label class="filtro-label">Data Final:</label>
+                    <input type="date" class="date-input" @bind="dataFimPersonalizada" />
+                </div>
+                <button type="button" class="btn-aplicar-periodo" @onclick="CarregarValidades">
+                    Aplicar Intervalo
+                </button>
+            </div>
+        }
+    </div>
+
+    @if (!string.IsNullOrEmpty(feedbackToast))
+    {
+        <div class="feedback-toast">
+            <span>@feedbackToast</span>
+        </div>
+    }
+
+    <!-- Listagem Ordenada por Vencimento -->
+    <div class="listagem-card">
+        <div class="listagem-header">
+            <h2 class="listagem-title">Itens em Monitoramento (@validades.Count)</h2>
+            <span class="listagem-ordem">Ordenado pelas validades mais próximas primeiro</span>
+        </div>
+
+        @if (carregando)
+        {
+            <div class="carregando-box">Carregando lotes de validade...</div>
+        }
+        else if (validades.Count == 0)
+        {
+            <div class="empty-box">
+                <span class="empty-icon">🎉</span>
+                <h3>Nenhum lote encontrado para este filtro!</h3>
+                <p>Todos os produtos estão em dia ou não há lotes ativos no período selecionado.</p>
+                <button type="button" class="btn-limpar-filtros" @onclick='() => AplicarFiltroRapido("todos")'>
+                    Ver Todos os Lotes Ativos
+                </button>
+            </div>
+        }
+        else
+        {
+            <!-- Visualização em Tabela Responsiva / Desktop -->
+            <div class="table-responsive-desktop">
+                <table class="tabela-monitoramento">
+                    <thead>
+                        <tr>
+                            <th>Loja</th>
+                            <th>Código</th>
+                            <th>Nome do Produto</th>
+                            <th>Validade & Prazo</th>
+                            <th>Data Coleta</th>
+                            <th>Em Promoção</th>
+                            <th style="text-align: right;">Ação</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in validades)
+                        {
+                            <tr class="item-row @(item.EstaVencido ? "row-alerta-vencido" : (item.DiasRestantes <= 7 ? "row-atencao" : ""))">
+                                <td>
+                                    <span class="loja-chip">@(item.Loja?.Nome ?? "Loja")</span>
+                                </td>
+                                <td>
+                                    <code class="codigo-barras-cell">@(item.Produto?.CodigoBarras ?? "-")</code>
+                                </td>
+                                <td>
+                                    <strong class="produto-nome-cell">@(item.Produto?.Nome ?? "-")</strong>
+                                </td>
+                                <td>
+                                    <div class="validade-cell-group">
+                                        <span class="validade-data-destaque">
+                                            @item.DataValidade.ToString("dd/MM/yyyy")
+                                        </span>
+                                        <span class="prazo-auxiliar @(item.EstaVencido ? "prazo-vencido-destaque" : "")">
+                                            @item.MensagemPrazo
+                                        </span>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="data-coleta-cell">@item.DataColeta.ToString("dd/MM/yyyy")</span>
+                                </td>
+                                <td>
+                                    <label class="switch-promocao">
+                                        <input type="checkbox" 
+                                               checked="@item.EmPromocao" 
+                                               @onchange="(e) => TogglePromocao(item, (bool)e.Value!)" />
+                                        <span class="switch-label">@(item.EmPromocao ? "Sim" : "Não")</span>
+                                    </label>
+                                </td>
+                                <td style="text-align: right;">
+                                    <div class="table-acoes-group">
+                                        <button type="button" 
+                                                class="btn-copiar-loja" 
+                                                title="Copiar ou Transferir para outra Loja"
+                                                @onclick="() => AbrirModalCopiar(item)">
+                                            📋 Replicar
+                                        </button>
+                                        <button type="button" 
+                                                class="btn-dar-baixa" 
+                                                @onclick="() => AbrirModalBaixa(item)">
+                                            Dar Baixa
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Visualização em Cards (Mobile-First) -->
+            <div class="cards-mobile-view">
+                @foreach (var item in validades)
+                {
+                    <div class="mobile-item-card @(item.EstaVencido ? "card-alerta-vencido" : (item.DiasRestantes <= 7 ? "card-atencao" : ""))">
+                        <div class="card-topo">
+                            <span class="loja-chip">@(item.Loja?.Nome ?? "Loja")</span>
+                            <span class="status-chip @(item.EstaVencido ? "chip-vencido" : "chip-ok")">
+                                @(item.EstaVencido ? "VENCIDO" : $"{item.DiasRestantes}d restantes")
+                            </span>
+                        </div>
+
+                        <h3 class="card-prod-nome">@(item.Produto?.Nome ?? "-")</h3>
+                        <span class="card-barcode">Código: @(item.Produto?.CodigoBarras ?? "-")</span>
+
+                        <div class="card-datas-grid">
+                            <div class="data-bloco">
+                                <span class="data-label">Validade</span>
+                                <span class="data-val">@item.DataValidade.ToString("dd/MM/yyyy")</span>
+                            </div>
+                            <div class="data-bloco">
+                                <span class="data-label">Coleta</span>
+                                <span class="data-val">@item.DataColeta.ToString("dd/MM/yyyy")</span>
+                            </div>
+                        </div>
+
+                        <div class="card-prazo-aviso @(item.EstaVencido ? "prazo-vencido-destaque" : "")">
+                            @item.MensagemPrazo
+                        </div>
+
+                        <div class="card-rodape">
+                            <label class="switch-promocao">
+                                <input type="checkbox" 
+                                       checked="@item.EmPromocao" 
+                                       @onchange="(e) => TogglePromocao(item, (bool)e.Value!)" />
+                                <span>Em Promoção</span>
+                            </label>
+
+                            <div class="card-acoes-botoes">
+                                <button type="button" class="btn-copiar-loja" @onclick="() => AbrirModalCopiar(item)">
+                                    📋 Replicar
+                                </button>
+                                <button type="button" class="btn-dar-baixa" @onclick="() => AbrirModalBaixa(item)">
+                                    Dar Baixa
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+</div>
+
+<!-- Modal de Cópia / Transferência de Validade -->
+<ModalCopiarValidade IsVisible="exibirModalCopiar"
+                     Registro="itemParaCopiar"
+                     Lojas="lojas"
+                     OnConfirmar="ConfirmarCopiaOuTransferencia"
+                     OnCancelar="FecharModalCopiar" />
+
+<!-- Modal de Baixa de Validade -->
+<ModalBaixa IsVisible="exibirModalBaixa"
+            Registro="itemParaBaixa"
+            OnConfirmar="ConfirmarBaixa"
+            OnCancelar="FecharModalBaixa" />
+
+@code {
+    private List<Loja> lojas = new();
+    private int lojaFiltroId = 0; // 0 = Todas as Lojas
+    private string filtroRapido = "todos"; // 7dias, 10dias, 15dias, vencidos, personalizado, todos
+    private DateTime dataInicioPersonalizada = DateTime.Today;
+    private DateTime dataFimPersonalizada = DateTime.Today.AddDays(30);
+
+    private List<RegistroValidade> validades = new();
+    private bool carregando = true;
+
+    // Toast feedback
+    private string feedbackToast = string.Empty;
+
+    // Modal Baixa
+    private bool exibirModalBaixa = false;
+    private RegistroValidade? itemParaBaixa = null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await ValidadeService.InicializarBancoESeedAsync();
+        lojas = await ValidadeService.GetLojasAsync();
+        await CarregarValidades();
+    }
+
+    private async Task CarregarValidades()
+    {
+        carregando = true;
+        int? lojaId = lojaFiltroId > 0 ? lojaFiltroId : null;
+
+        validades = await ValidadeService.GetValidadesAtivasAsync(
+            lojaId,
+            filtroRapido,
+            dataInicioPersonalizada,
+            dataFimPersonalizada
+        );
+
+        carregando = false;
+    }
+
+    private async Task AplicarFiltroRapido(string filtro)
+    {
+        filtroRapido = filtro;
+        await CarregarValidades();
+    }
+
+    private async Task TogglePromocao(RegistroValidade item, bool novoStatus)
+    {
+        item.EmPromocao = novoStatus;
+        await ValidadeService.AlternarPromocaoAsync(item.Id, novoStatus);
+
+        feedbackToast = $"Promoção de '{item.Produto?.Nome}' atualizada para: {(novoStatus ? "Sim" : "Não")}.";
+        _ = Task.Run(async () =>
+        {
+            await Task.Delay(2500);
+            feedbackToast = string.Empty;
+            await InvokeAsync(StateHasChanged);
+        });
+    }
+
+    private void AbrirModalBaixa(RegistroValidade item)
+    {
+        itemParaBaixa = item;
+        exibirModalBaixa = true;
+    }
+
+    private void FecharModalBaixa()
+    {
+        exibirModalBaixa = false;
+        itemParaBaixa = null;
+    }
+
+    private async Task ConfirmarBaixa(string motivo)
+    {
+        if (itemParaBaixa != null)
+        {
+            await ValidadeService.DarBaixaAsync(itemParaBaixa.Id, motivo);
+            feedbackToast = $"Baixa efetuada com sucesso para '{itemParaBaixa.Produto?.Nome}' (Motivo: {motivo})!";
+            await CarregarValidades();
+        }
+        FecharModalBaixa();
+    }
+
+    // Modal Copiar / Transferir
+    private bool exibirModalCopiar = false;
+    private RegistroValidade? itemParaCopiar = null;
+
+    private void AbrirModalCopiar(RegistroValidade item)
+    {
+        itemParaCopiar = item;
+        exibirModalCopiar = true;
+    }
+
+    private void FecharModalCopiar()
+    {
+        exibirModalCopiar = false;
+        itemParaCopiar = null;
+    }
+
+    private async Task ConfirmarCopiaOuTransferencia(ModalCopiarValidade.OpcaoCopiarValidadeArgs args)
+    {
+        if (itemParaCopiar == null) return;
+
+        var nomeProd = itemParaCopiar.Produto?.Nome ?? "Produto";
+
+        if (args.Modo == "transferir")
+        {
+            await ValidadeService.TransferirValidadeAsync(args.RegistroId, args.LojaDestinoId);
+            feedbackToast = $"Lote de '{nomeProd}' transferido com sucesso para {args.NomeLojaDestino}!";
+        }
+        else // copiar
+        {
+            if (args.ParaTodas)
+            {
+                var total = await ValidadeService.CopiarValidadeParaTodasLojasAsync(args.RegistroId);
+                feedbackToast = total > 0 
+                    ? $"Lote de '{nomeProd}' replicado com sucesso para {total} outra(s) loja(s)!" 
+                    : $"O lote de '{nomeProd}' já existia nas outras lojas.";
+            }
+            else
+            {
+                var copia = await ValidadeService.CopiarValidadeAsync(args.RegistroId, args.LojaDestinoId);
+                feedbackToast = copia != null 
+                    ? $"Lote de '{nomeProd}' copiado para {args.NomeLojaDestino} com sucesso!" 
+                    : $"A loja {args.NomeLojaDestino} já possui este lote ativo cadastrado.";
+            }
+        }
+
+        FecharModalCopiar();
+        await CarregarValidades();
+
+        _ = Task.Run(async () =>
+        {
+            await Task.Delay(3500);
+            feedbackToast = string.Empty;
+            await InvokeAsync(StateHasChanged);
+        });
+    }
+}

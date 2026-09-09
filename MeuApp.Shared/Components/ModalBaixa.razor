@@ -1,0 +1,115 @@
+@namespace MeuApp.Shared.Components
+
+@if (IsVisible && Registro != null)
+{
+    <div class="modal-backdrop-custom" @onclick="Cancelar">
+        <div class="modal-dialog-custom" @onclick:stopPropagation="true">
+            <div class="modal-header-custom">
+                <div class="header-icon-wrapper">
+                    <span class="header-icon">⚠️</span>
+                </div>
+                <div>
+                    <h3 class="modal-title-custom">Dar Baixa no Lote</h3>
+                    <p class="modal-subtitle-custom">Selecione o motivo da baixa para auditoria</p>
+                </div>
+                <button type="button" class="btn-close-custom" @onclick="Cancelar">×</button>
+            </div>
+
+            <div class="modal-body-custom">
+                <div class="item-summary-card">
+                    <span class="summary-store">@(Registro.Loja?.Nome ?? "Loja")</span>
+                    <strong class="summary-name">@(Registro.Produto?.Nome ?? "Produto")</strong>
+                    <div class="summary-details">
+                        <span>Código: <code>@(Registro.Produto?.CodigoBarras ?? "-")</code></span>
+                        <span>Validade: <strong>@Registro.DataValidade.ToString("dd/MM/yyyy")</strong></span>
+                        @if (Registro.EstaVencido)
+                        {
+                            <span class="badge-vencido-mini">Vencido</span>
+                        }
+                    </div>
+                </div>
+
+                <div class="motivo-section">
+                    <label class="section-label">Selecione o Motivo da Baixa:</label>
+                    <div class="motivos-grid">
+                        <button type="button" 
+                                class="btn-motivo @(motivoSelecionado == "Descarte/Vencido" ? "selected" : "")"
+                                @onclick='() => SelecionarMotivo("Descarte/Vencido")'>
+                            🗑️ Descarte / Vencido
+                        </button>
+                        <button type="button" 
+                                class="btn-motivo @(motivoSelecionado == "Vendido em Promoção" ? "selected" : "")"
+                                @onclick='() => SelecionarMotivo("Vendido em Promoção")'>
+                            🏷️ Vendido em Promoção
+                        </button>
+                        <button type="button" 
+                                class="btn-motivo @(motivoSelecionado == "Ajuste de Estoque" ? "selected" : "")"
+                                @onclick='() => SelecionarMotivo("Ajuste de Estoque")'>
+                            🔄 Ajuste de Estoque
+                        </button>
+                        <button type="button" 
+                                class="btn-motivo @(motivoSelecionado == "Outro" ? "selected" : "")"
+                                @onclick='() => SelecionarMotivo("Outro")'>
+                            ✏️ Outro Motivo
+                        </button>
+                    </div>
+
+                    @if (motivoSelecionado == "Outro")
+                    {
+                        <div class="outro-input-group">
+                            <input type="text" 
+                                   class="input-outro" 
+                                   placeholder="Descreva o motivo da baixa..." 
+                                   @bind="motivoPersonalizado" />
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <div class="modal-footer-custom">
+                <button type="button" class="btn-cancelar" @onclick="Cancelar">Cancelar</button>
+                <button type="button" class="btn-confirmar-baixa" @onclick="Confirmar">
+                    Confirmar Baixa
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public bool IsVisible { get; set; }
+    [Parameter] public RegistroValidade? Registro { get; set; }
+    [Parameter] public EventCallback<string> OnConfirmar { get; set; }
+    [Parameter] public EventCallback OnCancelar { get; set; }
+
+    private string motivoSelecionado = "Descarte/Vencido";
+    private string motivoPersonalizado = string.Empty;
+
+    protected override void OnParametersSet()
+    {
+        if (IsVisible)
+        {
+            motivoSelecionado = Registro?.EstaVencido == true ? "Descarte/Vencido" : "Vendido em Promoção";
+            motivoPersonalizado = string.Empty;
+        }
+    }
+
+    private void SelecionarMotivo(string motivo)
+    {
+        motivoSelecionado = motivo;
+    }
+
+    private async Task Confirmar()
+    {
+        var motivoFinal = motivoSelecionado == "Outro" && !string.IsNullOrWhiteSpace(motivoPersonalizado)
+            ? motivoPersonalizado.Trim()
+            : motivoSelecionado;
+
+        await OnConfirmar.InvokeAsync(motivoFinal);
+    }
+
+    private async Task Cancelar()
+    {
+        await OnCancelar.InvokeAsync();
+    }
+}

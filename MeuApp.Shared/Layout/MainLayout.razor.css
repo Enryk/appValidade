@@ -1,0 +1,52 @@
+.app-layout {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    background-color: #f8fafc;
+    color: #0f172a;
+}
+
+.sidebar-wrapper {
+    background-color: #0f172a;
+    width: 100%;
+    z-index: 100;
+}
+
+.main-content-wrapper {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0; /* Impede que tabelas ou flex items forcem o esmagamento da sidebar */
+    background-color: #f8fafc;
+}
+
+.content-body {
+    flex: 1;
+    width: 100%;
+    min-width: 0;
+}
+
+/* Telas Tablet e Desktop (Windows Desktop) */
+@media (min-width: 768px) {
+    .app-layout {
+        flex-direction: row;
+        height: 100vh;
+        overflow: hidden;
+    }
+
+    .sidebar-wrapper {
+        width: 260px;
+        min-width: 260px;
+        max-width: 260px;
+        flex-shrink: 0; /* Garante que a barra lateral nunca seja esmagada */
+        height: 100vh;
+        overflow-y: auto;
+        border-right: 1px solid #1e293b;
+    }
+
+    .main-content-wrapper {
+        height: 100vh;
+        overflow-y: auto;
+        overflow-x: hidden;
+    }
+}

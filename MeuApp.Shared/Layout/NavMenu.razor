@@ -1,0 +1,67 @@
+@namespace MeuApp.Shared.Layout
+
+<div class="nav-container">
+    <!-- Topo / Branding -->
+    <div class="nav-brand-header">
+        <div class="brand-logo-area">
+            <span class="brand-icon">📦</span>
+            <div class="brand-text">
+                <span class="brand-name">ValidadeApp</span>
+                <span class="brand-sub">Controle por Loja</span>
+            </div>
+        </div>
+
+        <!-- Botão Hamburger no mobile -->
+        <button type="button" class="btn-toggle-menu" @onclick="ToggleNavMenu" aria-label="Abrir Menu">
+            <span class="hamburger-icon">@(collapseNavMenu ? "☰" : "✕")</span>
+        </button>
+    </div>
+
+    <!-- Lista de Links -->
+    <div class="nav-menu-wrapper @(collapseNavMenu ? "collapsed" : "expanded")">
+        <div class="nav-section-title">MENU PRINCIPAL</div>
+
+        <nav class="nav-menu-list">
+            <NavLink class="nav-custom-link" href="" Match="NavLinkMatch.All" @onclick="CollapseMenuOnMobile">
+                <span class="nav-icon">📋</span>
+                <span class="nav-text">Monitoramento</span>
+            </NavLink>
+
+            <NavLink class="nav-custom-link" href="coleta" @onclick="CollapseMenuOnMobile">
+                <span class="nav-icon">📟</span>
+                <span class="nav-text">Coleta & Bipagem</span>
+            </NavLink>
+
+            <NavLink class="nav-custom-link" href="historico" @onclick="CollapseMenuOnMobile">
+                <span class="nav-icon">📜</span>
+                <span class="nav-text">Histórico de Baixas</span>
+            </NavLink>
+
+            <NavLink class="nav-custom-link" href="lojas" @onclick="CollapseMenuOnMobile">
+                <span class="nav-icon">🏬</span>
+                <span class="nav-text">Gestão de Lojas</span>
+            </NavLink>
+        </nav>
+
+        <div class="nav-footer-status">
+            <div class="status-indicator">
+                <span class="status-dot"></span>
+                <span class="status-text">SQLite Local Ativo</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private bool collapseNavMenu = true;
+
+    private void ToggleNavMenu()
+    {
+        collapseNavMenu = !collapseNavMenu;
+    }
+
+    private void CollapseMenuOnMobile()
+    {
+        collapseNavMenu = true;
+    }
+}

@@ -1,0 +1,75 @@
+@namespace MeuApp.Shared.Components
+
+<div class="validade-card @GetStatusClass()">
+    <div class="card-header-row">
+        <div class="item-title-group">
+            <span class="category-badge">@Item.Categoria</span>
+            <h3 class="item-title">@Item.Nome</h3>
+        </div>
+        <span class="status-pill @GetStatusClass()">
+            @GetStatusText()
+        </span>
+    </div>
+
+    <div class="card-body-row">
+        <div class="info-block">
+            <span class="info-label">Validade</span>
+            <span class="info-value">@Item.DataValidade.ToString("dd/MM/yyyy")</span>
+        </div>
+        <div class="info-block">
+            <span class="info-label">Estoque</span>
+            <span class="info-value">@Item.Quantidade @Item.Unidade</span>
+        </div>
+        <div class="info-block">
+            <span class="info-label">Situação</span>
+            <span class="info-value @GetStatusClass()">
+                @GetDaysRemainingText()
+            </span>
+        </div>
+    </div>
+
+    <div class="card-actions">
+        <button type="button" class="btn-action" @onclick="HandleAction">
+            <span>Conferir Item</span>
+            <span class="action-icon">✓</span>
+        </button>
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public ItemValidade Item { get; set; } = default!;
+
+    [Parameter]
+    public EventCallback<ItemValidade> OnAction { get; set; }
+
+    private async Task HandleAction()
+    {
+        if (OnAction.HasDelegate)
+        {
+            await OnAction.InvokeAsync(Item);
+        }
+    }
+
+    private string GetStatusClass() => Item.Status switch
+    {
+        StatusValidade.Vencido => "status-expired",
+        StatusValidade.Alerta => "status-warning",
+        _ => "status-ok"
+    };
+
+    private string GetStatusText() => Item.Status switch
+    {
+        StatusValidade.Vencido => "Vencido",
+        StatusValidade.Alerta => "Vence Breve",
+        _ => "Em Dia"
+    };
+
+    private string GetDaysRemainingText() => Item.DiasRestantes switch
+    {
+        < 0 => $"{Math.Abs(Item.DiasRestantes)} dias atrás",
+        0 => "Vence hoje!",
+        1 => "Amanhã",
+        _ => $"{Item.DiasRestantes} dias"
+    };
+}

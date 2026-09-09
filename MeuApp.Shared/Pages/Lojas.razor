@@ -1,0 +1,257 @@
+@page "/lojas"
+@namespace MeuApp.Shared.Pages
+@inject IValidadeService ValidadeService
+
+<div class="lojas-page">
+    <header class="page-header">
+        <div>
+            <h1 class="page-title">Gestão de Lojas</h1>
+            <p class="page-subtitle">Cadastre, edite ou remova unidades/filiais para controle de validades</p>
+        </div>
+    </header>
+
+    @if (!string.IsNullOrEmpty(feedbackMensagem))
+    {
+        <div class="alert-banner @(feedbackTipo == "success" ? "alert-success" : "alert-info")">
+            <span>@feedbackMensagem</span>
+            <button type="button" class="btn-close-alert" @onclick="() => feedbackMensagem = string.Empty">×</button>
+        </div>
+    }
+
+    <!-- Formulário Nova Loja / Editar Loja -->
+    <div class="card-loja-form @(lojaEmEdicaoId.HasValue ? "modo-edicao" : "")">
+        <div class="form-header-row">
+            <h2 class="form-title">
+                @(lojaEmEdicaoId.HasValue ? $"✏️ Editando: {lojaEmEdicaoNome}" : "🏬 Cadastrar Nova Loja")
+            </h2>
+            @if (lojaEmEdicaoId.HasValue)
+            {
+                <span class="badge-edicao">Modo de Edição</span>
+            }
+        </div>
+
+        <div class="form-grid">
+            <div class="field-group">
+                <label class="field-label">Código da Loja (Sigla/ID): *</label>
+                <input type="text" class="form-input" placeholder="Ex: LJ-03, SHOPPING" @bind="codigoLojaInput" />
+            </div>
+            <div class="field-group full-width">
+                <label class="field-label">Nome da Loja: *</label>
+                <input type="text" class="form-input" placeholder="Ex: Loja 03 - Hipermercado Norte" @bind="nomeLojaInput" />
+            </div>
+        </div>
+
+        <div class="form-actions">
+            @if (lojaEmEdicaoId.HasValue)
+            {
+                <button type="button" class="btn-cancelar-edicao" @onclick="CancelarEdicao">
+                    Cancelar Edição
+                </button>
+                <button type="button" class="btn-salvar-alteracoes" @onclick="SalvarAlteracoes">
+                    💾 Salvar Alterações
+                </button>
+            }
+            else
+            {
+                <button type="button" class="btn-salvar-loja" @onclick="CadastrarLoja">
+                    Cadastrar Loja
+                </button>
+            }
+        </div>
+    </div>
+
+    <!-- Lista de Lojas -->
+    <div class="card-lojas-lista">
+        <h2 class="lista-title">Lojas Cadastradas (@lojas.Count)</h2>
+        @if (lojas.Count == 0)
+        {
+            <p class="empty-text">Nenhuma loja cadastrada no momento.</p>
+        }
+        else
+        {
+            <div class="lojas-grid">
+                @foreach (var loja in lojas)
+                {
+                    <div class="loja-item-card @(lojaEmEdicaoId == loja.Id ? "card-sendo-editado" : "")">
+                        <div class="loja-main-info">
+                            <div class="loja-icon-box">🏬</div>
+                            <div class="loja-info">
+                                <span class="loja-codigo">@loja.CodigoLoja</span>
+                                <strong class="loja-nome">@loja.Nome</strong>
+                            </div>
+                        </div>
+
+                        <div class="loja-card-actions">
+                            <button type="button" 
+                                    class="btn-acao-loja btn-editar-loja" 
+                                    title="Editar nome e código desta loja"
+                                    @onclick="() => IniciarEdicao(loja)">
+                                ✏️ Editar
+                            </button>
+                            <button type="button" 
+                                    class="btn-acao-loja btn-excluir-loja" 
+                                    title="Excluir esta loja"
+                                    @onclick="() => AbrirConfirmacaoExclusao(loja)">
+                                🗑️ Excluir
+                            </button>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+</div>
+
+<!-- Modal de Confirmação de Exclusão -->
+@if (exibirModalExclusao && lojaParaExcluir != null)
+{
+    <div class="modal-backdrop-loja" @onclick="FecharModalExclusao">
+        <div class="modal-dialog-loja" @onclick:stopPropagation="true">
+            <div class="modal-header-loja">
+                <span class="modal-icon-danger">⚠️</span>
+                <h3 class="modal-title-loja">Excluir Loja?</h3>
+            </div>
+            <div class="modal-body-loja">
+                <p>
+                    Tem certeza de que deseja excluir a loja <strong>@lojaParaExcluir.Nome (@lojaParaExcluir.CodigoLoja)</strong>?
+                </p>
+                <div class="alerta-perigo">
+                    <span>⚠️ <strong>Atenção:</strong> Todos os produtos e lotes de validade vinculados a esta loja também serão excluídos do sistema.</span>
+                </div>
+            </div>
+            <div class="modal-footer-loja">
+                <button type="button" class="btn-cancelar-modal" @onclick="FecharModalExclusao">
+                    Cancelar
+                </button>
+                <button type="button" class="btn-confirmar-exclusao" @onclick="ConfirmarExclusao">
+                    Sim, Excluir Loja
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<Loja> lojas = new();
+    private string codigoLojaInput = string.Empty;
+    private string nomeLojaInput = string.Empty;
+
+    // Modo de Edição
+    private int? lojaEmEdicaoId = null;
+    private string lojaEmEdicaoNome = string.Empty;
+
+    // Modal de Exclusão
+    private bool exibirModalExclusao = false;
+    private Loja? lojaParaExcluir = null;
+
+    // Feedback
+    private string feedbackMensagem = string.Empty;
+    private string feedbackTipo = "success";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CarregarLojas();
+    }
+
+    private async Task CarregarLojas()
+    {
+        lojas = await ValidadeService.GetLojasAsync();
+    }
+
+    private async Task CadastrarLoja()
+    {
+        if (string.IsNullOrWhiteSpace(nomeLojaInput) || string.IsNullOrWhiteSpace(codigoLojaInput))
+        {
+            feedbackMensagem = "Por favor, preencha o Nome e o Código da Loja.";
+            feedbackTipo = "info";
+            return;
+        }
+
+        var loja = new Loja
+        {
+            Nome = nomeLojaInput.Trim(),
+            CodigoLoja = codigoLojaInput.Trim().ToUpperInvariant()
+        };
+
+        await ValidadeService.CriarLojaAsync(loja);
+        feedbackMensagem = $"Loja '{loja.Nome}' cadastrada com sucesso!";
+        feedbackTipo = "success";
+
+        codigoLojaInput = string.Empty;
+        nomeLojaInput = string.Empty;
+        await CarregarLojas();
+    }
+
+    private void IniciarEdicao(Loja loja)
+    {
+        lojaEmEdicaoId = loja.Id;
+        lojaEmEdicaoNome = loja.Nome;
+        nomeLojaInput = loja.Nome;
+        codigoLojaInput = loja.CodigoLoja;
+        feedbackMensagem = string.Empty;
+    }
+
+    private void CancelarEdicao()
+    {
+        lojaEmEdicaoId = null;
+        lojaEmEdicaoNome = string.Empty;
+        nomeLojaInput = string.Empty;
+        codigoLojaInput = string.Empty;
+    }
+
+    private async Task SalvarAlteracoes()
+    {
+        if (!lojaEmEdicaoId.HasValue) return;
+
+        if (string.IsNullOrWhiteSpace(nomeLojaInput) || string.IsNullOrWhiteSpace(codigoLojaInput))
+        {
+            feedbackMensagem = "Por favor, preencha o Nome e o Código da Loja.";
+            feedbackTipo = "info";
+            return;
+        }
+
+        var atualizada = await ValidadeService.AtualizarLojaAsync(
+            lojaEmEdicaoId.Value,
+            nomeLojaInput,
+            codigoLojaInput
+        );
+
+        feedbackMensagem = $"Loja '{atualizada?.Nome ?? nomeLojaInput}' atualizada com sucesso!";
+        feedbackTipo = "success";
+
+        CancelarEdicao();
+        await CarregarLojas();
+    }
+
+    private void AbrirConfirmacaoExclusao(Loja loja)
+    {
+        lojaParaExcluir = loja;
+        exibirModalExclusao = true;
+    }
+
+    private void FecharModalExclusao()
+    {
+        exibirModalExclusao = false;
+        lojaParaExcluir = null;
+    }
+
+    private async Task ConfirmarExclusao()
+    {
+        if (lojaParaExcluir != null)
+        {
+            var nome = lojaParaExcluir.Nome;
+            await ValidadeService.ExcluirLojaAsync(lojaParaExcluir.Id);
+
+            if (lojaEmEdicaoId == lojaParaExcluir.Id)
+            {
+                CancelarEdicao();
+            }
+
+            feedbackMensagem = $"Loja '{nome}' e seus registros vinculados foram excluídos com sucesso!";
+            feedbackTipo = "success";
+
+            FecharModalExclusao();
+            await CarregarLojas();
+        }
+    }
+}

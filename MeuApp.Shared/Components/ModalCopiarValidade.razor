@@ -1,0 +1,230 @@
+@namespace MeuApp.Shared.Components
+
+@if (IsVisible && Registro != null)
+{
+    <div class="modal-backdrop-custom" @onclick="Cancelar">
+        <div class="modal-dialog-custom" @onclick:stopPropagation="true">
+            <div class="modal-header-custom">
+                <div class="header-icon-wrapper">
+                    <span class="header-icon">📋</span>
+                </div>
+                <div>
+                    <h3 class="modal-title-custom">Replicar ou Enviar Validade</h3>
+                    <p class="modal-subtitle-custom">Copie ou transfira este lote para outra(s) loja(s)</p>
+                </div>
+                <button type="button" class="btn-close-custom" @onclick="Cancelar">×</button>
+            </div>
+
+            <div class="modal-body-custom">
+                @* Resumo do Lote de Origem *@
+                <div class="item-summary-card">
+                    <div class="summary-topo">
+                        <span class="summary-origem-badge">Origem: <strong>@(Registro.Loja?.Nome ?? "Loja Atual")</strong></span>
+                        <span class="summary-validade-badge">Validade: <strong>@Registro.DataValidade.ToString("dd/MM/yyyy")</strong></span>
+                    </div>
+                    <strong class="summary-name">@(Registro.Produto?.Nome ?? "Produto")</strong>
+                    <div class="summary-details">
+                        <span>Código: <code>@(Registro.Produto?.CodigoBarras ?? "-")</code></span>
+                        <span>Promoção: <strong>@(Registro.EmPromocao ? "Sim" : "Não")</strong></span>
+                    </div>
+                </div>
+
+                @* Tipo de Operação: Copiar vs Transferir *@
+                <div class="form-group-section">
+                    <label class="section-label">O que você deseja fazer?</label>
+                    <div class="modo-opcoes-grid">
+                        <button type="button" 
+                                class="btn-modo-opcao @(modoOperacao == "copiar" ? "selected" : "")"
+                                @onclick='() => SelecionarModo("copiar")'>
+                            <span class="modo-icon">📋</span>
+                            <div class="modo-info">
+                                <span class="modo-title">Copiar (Duplicar)</span>
+                                <span class="modo-desc">Mantém na loja de origem e cria cópia no destino</span>
+                            </div>
+                        </button>
+                        <button type="button" 
+                                class="btn-modo-opcao @(modoOperacao == "transferir" ? "selected" : "")"
+                                @onclick='() => SelecionarModo("transferir")'>
+                            <span class="modo-icon">🚚</span>
+                            <div class="modo-info">
+                                <span class="modo-title">Enviar / Mover</span>
+                                <span class="modo-desc">Transfere este lote para outra loja</span>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+
+                @* Destino *@
+                <div class="form-group-section">
+                    <label class="section-label">Destino do Lote:</label>
+
+                    @if (modoOperacao == "copiar")
+                    {
+                        <div class="destino-radios">
+                            <label class="radio-label-box @(copiarParaTodas ? "selected" : "")">
+                                <input type="radio" 
+                                       name="destinoCopiar" 
+                                       checked="@copiarParaTodas" 
+                                       @onchange="() => { copiarParaTodas = true; }" />
+                                <div>
+                                    <strong>Replicar para TODAS as outras lojas (@OutrasLojas.Count)</strong>
+                                    <p class="radio-sub">Cria cópia deste lote em todas as lojas ativas da rede de uma vez só</p>
+                                </div>
+                            </label>
+
+                            <label class="radio-label-box @(!copiarParaTodas ? "selected" : "")">
+                                <input type="radio" 
+                                       name="destinoCopiar" 
+                                       checked="@(!copiarParaTodas)" 
+                                       @onchange="() => { copiarParaTodas = false; }" />
+                                <div>
+                                    <strong>Copiar para uma Loja Específica</strong>
+                                </div>
+                            </label>
+                        </div>
+                    }
+
+                    @if (modoOperacao == "transferir" || !copiarParaTodas)
+                    {
+                        <div class="select-loja-destino-box">
+                            <label class="field-mini-label">Selecione a Loja de Destino:</label>
+                            @if (OutrasLojas.Count == 0)
+                            {
+                                <p class="aviso-sem-lojas">Não há outras lojas cadastradas no sistema.</p>
+                            }
+                            else
+                            {
+                                <select class="select-destino" @bind="lojaDestinoId">
+                                    <option value="0">-- Escolha a loja de destino --</option>
+                                    @foreach (var loja in OutrasLojas)
+                                    {
+                                        <option value="@loja.Id">@loja.Nome (@loja.CodigoLoja)</option>
+                                    }
+                                </select>
+                            }
+                        </div>
+                    }
+                </div>
+
+                @if (!string.IsNullOrEmpty(erroMensagem))
+                {
+                    <div class="modal-alert-error">
+                        <span>@erroMensagem</span>
+                    </div>
+                }
+            </div>
+
+            <div class="modal-footer-custom">
+                <button type="button" class="btn-cancelar" @onclick="Cancelar">Cancelar</button>
+                <button type="button" class="btn-confirmar-operacao" @onclick="Confirmar">
+                    @TextoBotaoConfirmar
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public bool IsVisible { get; set; }
+    [Parameter] public RegistroValidade? Registro { get; set; }
+    [Parameter] public List<Loja> Lojas { get; set; } = new();
+    [Parameter] public EventCallback<OpcaoCopiarValidadeArgs> OnConfirmar { get; set; }
+    [Parameter] public EventCallback OnCancelar { get; set; }
+
+    private string modoOperacao = "copiar"; // "copiar" ou "transferir"
+    private bool copiarParaTodas = true;
+    private int lojaDestinoId = 0;
+    private string erroMensagem = string.Empty;
+
+    private List<Loja> OutrasLojas => Lojas.Where(l => l.Id != (Registro?.LojaId ?? 0)).ToList();
+
+    private string TextoBotaoConfirmar
+    {
+        get
+        {
+            if (modoOperacao == "transferir")
+            {
+                var loja = OutrasLojas.FirstOrDefault(l => l.Id == lojaDestinoId);
+                return loja != null ? $"Mover para {loja.Nome}" : "Confirmar Envio";
+            }
+            else
+            {
+                if (copiarParaTodas)
+                {
+                    return $"Replicar para TODAS as Lojas ({OutrasLojas.Count})";
+                }
+                var loja = OutrasLojas.FirstOrDefault(l => l.Id == lojaDestinoId);
+                return loja != null ? $"Copiar para {loja.Nome}" : "Confirmar Cópia";
+            }
+        }
+    }
+
+    protected override void OnParametersSet()
+    {
+        if (IsVisible)
+        {
+            modoOperacao = "copiar";
+            copiarParaTodas = true;
+            lojaDestinoId = OutrasLojas.FirstOrDefault()?.Id ?? 0;
+            erroMensagem = string.Empty;
+        }
+    }
+
+    private void SelecionarModo(string modo)
+    {
+        modoOperacao = modo;
+        erroMensagem = string.Empty;
+        if (modo == "transferir")
+        {
+            copiarParaTodas = false;
+            if (lojaDestinoId == 0 && OutrasLojas.Any())
+            {
+                lojaDestinoId = OutrasLojas.First().Id;
+            }
+        }
+    }
+
+    private async Task Confirmar()
+    {
+        erroMensagem = string.Empty;
+
+        if (Registro == null) return;
+
+        if (OutrasLojas.Count == 0)
+        {
+            erroMensagem = "Cadastre ao menos outra loja no menu Lojas para poder copiar ou transferir validades.";
+            return;
+        }
+
+        if (!copiarParaTodas && lojaDestinoId == 0)
+        {
+            erroMensagem = "Por favor, selecione uma loja de destino.";
+            return;
+        }
+
+        var args = new OpcaoCopiarValidadeArgs
+        {
+            RegistroId = Registro.Id,
+            Modo = modoOperacao,
+            ParaTodas = modoOperacao == "copiar" && copiarParaTodas,
+            LojaDestinoId = lojaDestinoId,
+            NomeLojaDestino = OutrasLojas.FirstOrDefault(l => l.Id == lojaDestinoId)?.Nome ?? "Loja"
+        };
+
+        await OnConfirmar.InvokeAsync(args);
+    }
+
+    private async Task Cancelar()
+    {
+        await OnCancelar.InvokeAsync();
+    }
+
+    public class OpcaoCopiarValidadeArgs
+    {
+        public int RegistroId { get; set; }
+        public string Modo { get; set; } = "copiar"; // "copiar" ou "transferir"
+        public bool ParaTodas { get; set; }
+        public int LojaDestinoId { get; set; }
+        public string NomeLojaDestino { get; set; } = string.Empty;
+    }
+}

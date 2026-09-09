@@ -1,0 +1,172 @@
+/* Estilos Mobile-First para CardValidade */
+.validade-card {
+    background: #ffffff;
+    border-radius: 16px;
+    padding: 16px;
+    margin-bottom: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    border: 1px solid #e9ecef;
+    border-left: 6px solid #28a745;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.validade-card:active {
+    transform: scale(0.99);
+}
+
+.validade-card.status-warning {
+    border-left-color: #f59e0b;
+}
+
+.validade-card.status-expired {
+    border-left-color: #ef4444;
+}
+
+/* Cabeçalho do Card */
+.card-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 8px;
+}
+
+.item-title-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.category-badge {
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #6c757d;
+    background: #f1f3f5;
+    padding: 2px 8px;
+    border-radius: 6px;
+    width: fit-content;
+}
+
+.item-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #212529;
+    margin: 0;
+    line-height: 1.3;
+}
+
+/* Status Pill */
+.status-pill {
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 20px;
+    white-space: nowrap;
+}
+
+.status-pill.status-ok {
+    background-color: #d1fae5;
+    color: #065f46;
+}
+
+.status-pill.status-warning {
+    background-color: #fef3c7;
+    color: #92400e;
+}
+
+.status-pill.status-expired {
+    background-color: #fee2e2;
+    color: #991b1b;
+}
+
+/* Corpo com métricas */
+.card-body-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    background: #f8f9fa;
+    padding: 10px;
+    border-radius: 10px;
+    gap: 8px;
+}
+
+.info-block {
+    display: flex;
+    flex-direction: column;
+}
+
+.info-label {
+    font-size: 0.7rem;
+    color: #6c757d;
+    text-transform: uppercase;
+    font-weight: 600;
+}
+
+.info-value {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #343a40;
+}
+
+.info-value.status-expired {
+    color: #dc3545;
+}
+
+.info-value.status-warning {
+    color: #d97706;
+}
+
+.info-value.status-ok {
+    color: #198754;
+}
+
+/* Ação mobile-friendly */
+.card-actions {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.btn-action {
+    width: 100%;
+    min-height: 44px; /* Otimizado para toque no celular */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    background: #4f46e5;
+    color: #ffffff;
+    border: none;
+    border-radius: 10px;
+    font-size: 0.92rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.btn-action:hover {
+    background: #4338ca;
+}
+
+.btn-action:active {
+    background: #3730a3;
+}
+
+.action-icon {
+    font-size: 1rem;
+}
+
+/* Ajustes para telas maiores (Tablet / Desktop) */
+@media (min-width: 640px) {
+    .validade-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+    }
+
+    .btn-action {
+        width: auto;
+        padding: 8px 18px;
+    }
+}
