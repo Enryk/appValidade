@@ -520,18 +520,30 @@ public class ValidadeService : IValidadeService
 
         foreach (var item in registros)
         {
-            var loja = item.Loja?.Nome ?? "N/D";
-            var codBarras = item.Produto?.CodigoBarras ?? "N/D";
-            var nome = item.Produto?.Nome?.Replace(";", ",") ?? "N/D";
+            var loja = SanitizarCampoCsv(item.Loja?.Nome);
+            var codBarras = SanitizarCampoCsv(item.Produto?.CodigoBarras);
+            var nome = SanitizarCampoCsv(item.Produto?.Nome);
             var validade = item.DataValidade.ToString("dd/MM/yyyy");
             var coleta = item.DataColeta.ToString("dd/MM/yyyy");
             var baixa = item.DataBaixa?.ToString("dd/MM/yyyy HH:mm:ss") ?? "N/D";
-            var motivo = (item.MotivoBaixa ?? "N/D").Replace(";", ",");
+            var motivo = SanitizarCampoCsv(item.MotivoBaixa);
             var promo = item.EmPromocao ? "Sim" : "Não";
 
             sb.AppendLine($"{loja};{codBarras};{nome};{validade};{coleta};{baixa};{motivo};{promo}");
         }
 
         return sb.ToString();
+    }
+
+    private static string SanitizarCampoCsv(string? valor)
+    {
+        if (string.IsNullOrWhiteSpace(valor)) return "N/D";
+        var tratado = valor.Replace(";", ",").Trim();
+        // Previne CSV Formula Injection (DDE commands no Excel/Calc/Sheets)
+        if (tratado.Length > 0 && (tratado[0] == '=' || tratado[0] == '+' || tratado[0] == '-' || tratado[0] == '@' || tratado[0] == '\t' || tratado[0] == '\r'))
+        {
+            tratado = "'" + tratado;
+        }
+        return tratado;
     }
 }

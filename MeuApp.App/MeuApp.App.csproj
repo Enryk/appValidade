@@ -31,10 +31,10 @@
         <MauiXamlInflator>SourceGen</MauiXamlInflator>
 
         <!-- Display name -->
-        <ApplicationTitle>MeuApp.App</ApplicationTitle>
+        <ApplicationTitle>ValiData - Controle de Validades</ApplicationTitle>
 
         <!-- App Identifier -->
-        <ApplicationId>com.companyname.meuapp.app</ApplicationId>
+        <ApplicationId>com.enryk.appvalidade</ApplicationId>
 
         <!-- Versions -->
         <ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>

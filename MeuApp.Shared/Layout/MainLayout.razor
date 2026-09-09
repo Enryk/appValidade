@@ -8,7 +8,32 @@
 
     <main class="main-content-wrapper">
         <article class="content-body">
-            @Body
+            <ErrorBoundary @ref="errorBoundary">
+                <ChildContent>
+                    @Body
+                </ChildContent>
+                <ErrorContent>
+                    <div class="error-boundary-box">
+                        <div class="error-boundary-card">
+                            <span class="error-boundary-icon">🛡️</span>
+                            <h3>Instabilidade Temporária</h3>
+                            <p>Ocorreu uma instabilidade ao carregar esta seção. Os detalhes foram registrados de forma segura.</p>
+                            <button type="button" class="btn-recuperar-erro" @onclick="RecuperarErro">
+                                Recarregar Seção
+                            </button>
+                        </div>
+                    </div>
+                </ErrorContent>
+            </ErrorBoundary>
         </article>
     </main>
 </div>
+
+@code {
+    private ErrorBoundary? errorBoundary;
+
+    private void RecuperarErro()
+    {
+        errorBoundary?.Recover();
+    }
+}

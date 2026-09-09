@@ -52,3 +52,24 @@ bld/
 # OS generated files
 .DS_Store
 Thumbs.db
+
+# Security: Private Keys, Certificates, and Keystores
+*.pfx
+*.p12
+*.jks
+*.keystore
+*.key
+*.pem
+*.cer
+*.crt
+
+# Security: Environment files and Secrets
+.env
+.env.*
+appsettings.json
+appsettings.*.json
+secrets.json
+
+# Memory and Crash Dumps
+*.dmp
+*.crash
