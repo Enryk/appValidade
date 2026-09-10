@@ -113,8 +113,42 @@
     <!-- Listagem Ordenada por Vencimento -->
     <div class="listagem-card">
         <div class="listagem-header">
-            <h2 class="listagem-title">Itens em Monitoramento (@validades.Count)</h2>
-            <span class="listagem-ordem">Ordenado pelas validades mais próximas primeiro</span>
+            <div class="listagem-titles-area">
+                <h2 class="listagem-title">
+                    Itens em Monitoramento (@TotalItensFiltrados)
+                    @if (!string.IsNullOrWhiteSpace(termoBusca))
+                    {
+                        <span class="filtro-termo-aviso">(filtrado de @validades.Count)</span>
+                    }
+                </h2>
+                <span class="listagem-ordem">Ordenado pelas validades mais próximas primeiro</span>
+            </div>
+
+            <!-- Toolbar de Busca Rápida e Itens por Página -->
+            <div class="paginacao-topo-toolbar">
+                <div class="busca-input-wrapper">
+                    <span class="busca-lupa-icon">🔍</span>
+                    <input type="text" 
+                           class="input-busca-produtos" 
+                           placeholder="Buscar por produto ou código..." 
+                           value="@termoBusca" 
+                           @oninput="OnBuscaInput" />
+                    @if (!string.IsNullOrWhiteSpace(termoBusca))
+                    {
+                        <button type="button" class="btn-limpar-busca-rapida" @onclick="LimparBusca" title="Limpar busca">×</button>
+                    }
+                </div>
+
+                <div class="seletor-limite-wrapper">
+                    <span class="limite-label">Exibir:</span>
+                    <select class="select-limite-pagina" value="@itensPorPagina" @onchange="OnItensPorPaginaAlterado">
+                        <option value="25">25 por página</option>
+                        <option value="50">50 por página</option>
+                        <option value="100">100 por página</option>
+                        <option value="250">250 por página</option>
+                    </select>
+                </div>
+            </div>
         </div>
 
         @if (carregando)
@@ -129,6 +163,17 @@
                 <p>Todos os produtos estão em dia ou não há lotes ativos no período selecionado.</p>
                 <button type="button" class="btn-limpar-filtros" @onclick='() => AplicarFiltroRapido("todos")'>
                     Ver Todos os Lotes Ativos
+                </button>
+            </div>
+        }
+        else if (TotalItensFiltrados == 0)
+        {
+            <div class="empty-box">
+                <span class="empty-icon">🔍</span>
+                <h3>Nenhum produto encontrado para "@termoBusca"</h3>
+                <p>Verifique o nome digitado ou código de barras.</p>
+                <button type="button" class="btn-limpar-filtros" @onclick="LimparBusca">
+                    Limpar Filtro de Busca
                 </button>
             </div>
         }
@@ -149,9 +194,9 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach (var item in validades)
+                        @foreach (var item in ItensPaginados)
                         {
-                            <tr class="item-row @(item.EstaVencido ? "row-alerta-vencido" : (item.DiasRestantes <= 7 ? "row-atencao" : ""))">
+                            <tr class="item-row @(item.EstaVencido ? "row-alerta-vencido" : (item.DiasRestantes <= 7 ? "row-destaque-7dias" : ""))">
                                 <td>
                                     <span class="loja-chip">@(item.Loja?.Nome ?? "Loja")</span>
                                 </td>
@@ -159,16 +204,53 @@
                                     <code class="codigo-barras-cell">@(item.Produto?.CodigoBarras ?? "-")</code>
                                 </td>
                                 <td>
-                                    <strong class="produto-nome-cell">@(item.Produto?.Nome ?? "-")</strong>
+                                    <div class="prod-nome-wrapper">
+                                        @if (item.EstaVencido)
+                                        {
+                                            <span class="icone-alerta-linha" title="Produto Vencido">🚨</span>
+                                        }
+                                        else if (item.DiasRestantes <= 7)
+                                        {
+                                            <span class="icone-alerta-linha" title="Próximo de vencer (até 7 dias)">⚠️</span>
+                                        }
+                                        <strong class="produto-nome-cell">@(item.Produto?.Nome ?? "-")</strong>
+                                    </div>
                                 </td>
                                 <td>
                                     <div class="validade-cell-group">
-                                        <span class="validade-data-destaque">
+                                        <span class="validade-data-destaque @(item.EstaVencido ? "data-vencida" : (item.DiasRestantes <= 7 ? "data-destaque-7dias" : ""))">
                                             @item.DataValidade.ToString("dd/MM/yyyy")
                                         </span>
-                                        <span class="prazo-auxiliar @(item.EstaVencido ? "prazo-vencido-destaque" : "")">
-                                            @item.MensagemPrazo
-                                        </span>
+                                        @if (item.EstaVencido)
+                                        {
+                                            <span class="badge-prazo-tag badge-vencido">
+                                                🚨 Vencido há @Math.Abs(item.DiasRestantes) @(Math.Abs(item.DiasRestantes) == 1 ? "dia" : "dias")
+                                            </span>
+                                        }
+                                        else if (item.DiasRestantes == 0)
+                                        {
+                                            <span class="badge-prazo-tag badge-hoje">
+                                                ⚠️ Vence HOJE!
+                                            </span>
+                                        }
+                                        else if (item.DiasRestantes == 1)
+                                        {
+                                            <span class="badge-prazo-tag badge-amanha">
+                                                ⏳ Vence amanhã!
+                                            </span>
+                                        }
+                                        else if (item.DiasRestantes <= 7)
+                                        {
+                                            <span class="badge-prazo-tag badge-7dias">
+                                                ⏳ Vence em @item.DiasRestantes dias
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="prazo-auxiliar">
+                                                @item.MensagemPrazo
+                                            </span>
+                                        }
                                     </div>
                                 </td>
                                 <td>
@@ -205,23 +287,48 @@
 
             <!-- Visualização em Cards (Mobile-First) -->
             <div class="cards-mobile-view">
-                @foreach (var item in validades)
+                @foreach (var item in ItensPaginados)
                 {
-                    <div class="mobile-item-card @(item.EstaVencido ? "card-alerta-vencido" : (item.DiasRestantes <= 7 ? "card-atencao" : ""))">
+                    <div class="mobile-item-card @(item.EstaVencido ? "card-alerta-vencido" : (item.DiasRestantes <= 7 ? "card-destaque-7dias" : ""))">
                         <div class="card-topo">
                             <span class="loja-chip">@(item.Loja?.Nome ?? "Loja")</span>
-                            <span class="status-chip @(item.EstaVencido ? "chip-vencido" : "chip-ok")">
-                                @(item.EstaVencido ? "VENCIDO" : $"{item.DiasRestantes}d restantes")
-                            </span>
+                            @if (item.EstaVencido)
+                            {
+                                <span class="status-chip chip-vencido">🚨 VENCIDO</span>
+                            }
+                            else if (item.DiasRestantes == 0)
+                            {
+                                <span class="status-chip chip-hoje">⚠️ VENCE HOJE</span>
+                            }
+                            else if (item.DiasRestantes <= 7)
+                            {
+                                <span class="status-chip chip-atencao">⏳ @item.DiasRestantes dias restantes</span>
+                            }
+                            else
+                            {
+                                <span class="status-chip chip-ok">@item.DiasRestantes dias</span>
+                            }
                         </div>
 
-                        <h3 class="card-prod-nome">@(item.Produto?.Nome ?? "-")</h3>
+                        <h3 class="card-prod-nome">
+                            @if (item.EstaVencido)
+                            {
+                                <span style="color: #dc2626;">🚨 </span>
+                            }
+                            else if (item.DiasRestantes <= 7)
+                            {
+                                <span style="color: #d97706;">⚠️ </span>
+                            }
+                            @(item.Produto?.Nome ?? "-")
+                        </h3>
                         <span class="card-barcode">Código: @(item.Produto?.CodigoBarras ?? "-")</span>
 
                         <div class="card-datas-grid">
                             <div class="data-bloco">
                                 <span class="data-label">Validade</span>
-                                <span class="data-val">@item.DataValidade.ToString("dd/MM/yyyy")</span>
+                                <span class="data-val @(item.EstaVencido ? "data-vencida" : (item.DiasRestantes <= 7 ? "data-destaque-7dias" : ""))">
+                                    @item.DataValidade.ToString("dd/MM/yyyy")
+                                </span>
                             </div>
                             <div class="data-bloco">
                                 <span class="data-label">Coleta</span>
@@ -229,7 +336,7 @@
                             </div>
                         </div>
 
-                        <div class="card-prazo-aviso @(item.EstaVencido ? "prazo-vencido-destaque" : "")">
+                        <div class="card-prazo-aviso @(item.EstaVencido ? "prazo-vencido-destaque" : (item.DiasRestantes <= 7 ? "prazo-7dias-destaque" : ""))">
                             @item.MensagemPrazo
                         </div>
 
@@ -253,6 +360,57 @@
                     </div>
                 }
             </div>
+
+            <!-- Barra de Navegação de Paginação -->
+            @if (TotalPaginas > 1)
+            {
+                <div class="paginacao-rodape">
+                    <div class="paginacao-info">
+                        Exibindo <strong>@PrimeiroItemExibido</strong> a <strong>@UltimoItemExibido</strong> de <strong>@TotalItensFiltrados</strong> lotes
+                    </div>
+
+                    <div class="paginacao-botoes">
+                        <button type="button" 
+                                class="btn-nav-page" 
+                                disabled="@(paginaAtual <= 1)" 
+                                @onclick="() => IrParaPagina(1)" 
+                                title="Primeira Página">
+                            ⏮
+                        </button>
+                        <button type="button" 
+                                class="btn-nav-page" 
+                                disabled="@(paginaAtual <= 1)" 
+                                @onclick="PaginaAnterior" 
+                                title="Página Anterior">
+                            ◀ Anterior
+                        </button>
+
+                        @foreach (var p in ObterPaginasVisiveis())
+                        {
+                            <button type="button" 
+                                    class="btn-nav-page btn-num-page @(p == paginaAtual ? "active" : "")" 
+                                    @onclick="() => IrParaPagina(p)">
+                                @p
+                            </button>
+                        }
+
+                        <button type="button" 
+                                class="btn-nav-page" 
+                                disabled="@(paginaAtual >= TotalPaginas)" 
+                                @onclick="ProximaPagina" 
+                                title="Próxima Página">
+                            Próxima ▶
+                        </button>
+                        <button type="button" 
+                                class="btn-nav-page" 
+                                disabled="@(paginaAtual >= TotalPaginas)" 
+                                @onclick="() => IrParaPagina(TotalPaginas)" 
+                                title="Última Página">
+                            ⏭
+                        </button>
+                    </div>
+                </div>
+            }
         }
     </div>
 </div>
@@ -280,6 +438,94 @@
     private List<RegistroValidade> validades = new();
     private bool carregando = true;
 
+    // Paginação e Busca Instantânea
+    private int paginaAtual = 1;
+    private int itensPorPagina = 50;
+    private string termoBusca = string.Empty;
+
+    private IEnumerable<RegistroValidade> ItensFiltrados
+    {
+        get
+        {
+            if (string.IsNullOrWhiteSpace(termoBusca))
+                return validades;
+
+            var b = termoBusca.Trim().ToLowerInvariant();
+            return validades.Where(v =>
+                (v.Produto?.Nome != null && v.Produto.Nome.ToLowerInvariant().Contains(b)) ||
+                (v.Produto?.CodigoBarras != null && v.Produto.CodigoBarras.Contains(b)) ||
+                (v.Loja?.Nome != null && v.Loja.Nome.ToLowerInvariant().Contains(b))
+            );
+        }
+    }
+
+    private int TotalItensFiltrados => ItensFiltrados.Count();
+    private int TotalPaginas => Math.Max(1, (int)Math.Ceiling((double)TotalItensFiltrados / itensPorPagina));
+    private int PrimeiroItemExibido => TotalItensFiltrados == 0 ? 0 : ((paginaAtual - 1) * itensPorPagina) + 1;
+    private int UltimoItemExibido => Math.Min(paginaAtual * itensPorPagina, TotalItensFiltrados);
+
+    private List<RegistroValidade> ItensPaginados =>
+        ItensFiltrados
+            .Skip((paginaAtual - 1) * itensPorPagina)
+            .Take(itensPorPagina)
+            .ToList();
+
+    private void IrParaPagina(int p)
+    {
+        paginaAtual = Math.Clamp(p, 1, TotalPaginas);
+    }
+
+    private void PaginaAnterior()
+    {
+        if (paginaAtual > 1) paginaAtual--;
+    }
+
+    private void ProximaPagina()
+    {
+        if (paginaAtual < TotalPaginas) paginaAtual++;
+    }
+
+    private void OnItensPorPaginaAlterado(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out var novo))
+        {
+            itensPorPagina = novo;
+            paginaAtual = 1;
+        }
+    }
+
+    private void OnBuscaInput(ChangeEventArgs e)
+    {
+        termoBusca = e.Value?.ToString() ?? string.Empty;
+        paginaAtual = 1;
+    }
+
+    private void LimparBusca()
+    {
+        termoBusca = string.Empty;
+        paginaAtual = 1;
+    }
+
+    private IEnumerable<int> ObterPaginasVisiveis()
+    {
+        int delta = 2;
+        int inicio = Math.Max(1, paginaAtual - delta);
+        int fim = Math.Min(TotalPaginas, paginaAtual + delta);
+
+        if (fim - inicio < 4)
+        {
+            if (inicio == 1)
+                fim = Math.Min(TotalPaginas, inicio + 4);
+            else if (fim == TotalPaginas)
+                inicio = Math.Max(1, fim - 4);
+        }
+
+        for (int i = inicio; i <= fim; i++)
+        {
+            yield return i;
+        }
+    }
+
     // Toast feedback
     private string feedbackToast = string.Empty;
 
@@ -297,6 +543,7 @@
     private async Task CarregarValidades()
     {
         carregando = true;
+        paginaAtual = 1;
         int? lojaId = lojaFiltroId > 0 ? lojaFiltroId : null;
 
         validades = await ValidadeService.GetValidadesAtivasAsync(
@@ -312,6 +559,7 @@
     private async Task AplicarFiltroRapido(string filtro)
     {
         filtroRapido = filtro;
+        paginaAtual = 1;
         await CarregarValidades();
     }
 
