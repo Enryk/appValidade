@@ -1,6 +1,7 @@
 @page "/"
 @namespace MeuApp.Shared.Pages
 @inject IValidadeService ValidadeService
+@inject IJSRuntime JSRuntime
 
 <div class="monitoramento-page">
     <header class="page-header">
@@ -184,6 +185,13 @@
                 <table class="tabela-monitoramento">
                     <thead>
                         <tr>
+                            <th style="width: 44px; text-align: center;">
+                                <input type="checkbox" 
+                                       class="checkbox-custom-item" 
+                                       checked="@TodosDaPaginaSelecionados" 
+                                       @onchange="ToggleSelecionarTodosDaPagina" 
+                                       title="Selecionar / Desmarcar todos da página atual" />
+                            </th>
                             <th>Loja</th>
                             <th>Código</th>
                             <th>Nome do Produto</th>
@@ -196,7 +204,13 @@
                     <tbody>
                         @foreach (var item in ItensPaginados)
                         {
-                            <tr class="item-row @(item.EstaVencido ? "row-alerta-vencido" : (item.DiasRestantes <= 7 ? "row-destaque-7dias" : ""))">
+                            <tr class="item-row @(itensSelecionadosIds.Contains(item.Id) ? "row-selected" : "") @(item.EstaVencido ? "row-alerta-vencido" : (item.DiasRestantes <= 7 ? "row-destaque-7dias" : ""))">
+                                <td style="text-align: center;">
+                                    <input type="checkbox" 
+                                           class="checkbox-custom-item" 
+                                           checked="@itensSelecionadosIds.Contains(item.Id)" 
+                                           @onchange="(e) => ToggleItemSelecionado(item.Id, (bool)e.Value!)" />
+                                </td>
                                 <td>
                                     <span class="loja-chip">@(item.Loja?.Nome ?? "Loja")</span>
                                 </td>
@@ -267,6 +281,12 @@
                                 <td style="text-align: right;">
                                     <div class="table-acoes-group">
                                         <button type="button" 
+                                                class="btn-whatsapp-mini" 
+                                                title="Enviar este produto via WhatsApp"
+                                                @onclick="() => CompartilharItemIndividual(item)">
+                                            💬
+                                        </button>
+                                        <button type="button" 
                                                 class="btn-copiar-loja" 
                                                 title="Copiar ou Transferir para outra Loja"
                                                 @onclick="() => AbrirModalCopiar(item)">
@@ -286,12 +306,28 @@
             </div>
 
             <!-- Visualização em Cards (Mobile-First) -->
+            <div class="mobile-selecao-header">
+                <label class="checkbox-label-mobile">
+                    <input type="checkbox" 
+                           class="checkbox-custom-item" 
+                           checked="@TodosDaPaginaSelecionados" 
+                           @onchange="ToggleSelecionarTodosDaPagina" />
+                    <span>Selecionar todos da página (@ItensPaginados.Count())</span>
+                </label>
+            </div>
+
             <div class="cards-mobile-view">
                 @foreach (var item in ItensPaginados)
                 {
-                    <div class="mobile-item-card @(item.EstaVencido ? "card-alerta-vencido" : (item.DiasRestantes <= 7 ? "card-destaque-7dias" : ""))">
+                    <div class="mobile-item-card @(itensSelecionadosIds.Contains(item.Id) ? "card-selected" : "") @(item.EstaVencido ? "card-alerta-vencido" : (item.DiasRestantes <= 7 ? "card-destaque-7dias" : ""))">
                         <div class="card-topo">
-                            <span class="loja-chip">@(item.Loja?.Nome ?? "Loja")</span>
+                            <div class="card-topo-left">
+                                <input type="checkbox" 
+                                       class="checkbox-custom-item" 
+                                       checked="@itensSelecionadosIds.Contains(item.Id)" 
+                                       @onchange="(e) => ToggleItemSelecionado(item.Id, (bool)e.Value!)" />
+                                <span class="loja-chip">@(item.Loja?.Nome ?? "Loja")</span>
+                            </div>
                             @if (item.EstaVencido)
                             {
                                 <span class="status-chip chip-vencido">🚨 VENCIDO</span>
@@ -351,6 +387,9 @@
                             </div>
 
                             <div class="card-acoes-grid">
+                                <button type="button" class="btn-whatsapp-card btn-mobile-acao" @onclick="() => CompartilharItemIndividual(item)" title="Enviar via WhatsApp">
+                                    💬 WhatsApp
+                                </button>
                                 <button type="button" class="btn-copiar-loja btn-mobile-acao" @onclick="() => AbrirModalCopiar(item)">
                                     📋 Replicar
                                 </button>
@@ -413,9 +452,37 @@
                     </div>
                 </div>
             }
+
+            <!-- Barra Flutuante de Ações para Itens Selecionados -->
+            @if (itensSelecionadosIds.Any())
+            {
+                <div class="barra-flutuante-selecao">
+                    <div class="barra-flutuante-info">
+                        <span class="barra-contador">@itensSelecionadosIds.Count</span>
+                        <span class="barra-texto">item(ns) selecionado(s)</span>
+                    </div>
+                    <div class="barra-flutuante-acoes">
+                        <button type="button" class="btn-barra-whatsapp" @onclick="AbrirModalCompartilharSelecionados">
+                            💬 Enviar WhatsApp
+                        </button>
+                        <button type="button" class="btn-barra-copiar" @onclick="CopiarSelecionadosRapido" title="Copiar texto para área de transferência">
+                            📋 Copiar Texto
+                        </button>
+                        <button type="button" class="btn-barra-desmarcar" @onclick="DesmarcarTodos">
+                            ✕ Desmarcar
+                        </button>
+                    </div>
+                </div>
+            }
         }
     </div>
 </div>
+
+<!-- Modal de Compartilhamento via WhatsApp -->
+<ModalCompartilharWhatsApp IsVisible="exibirModalWhatsApp"
+                           Itens="itensParaCompartilhar"
+                           NomeLojaPadrao="@NomeLojaAtual"
+                           OnFechar="FecharModalWhatsApp" />
 
 <!-- Modal de Cópia / Transferência de Validade -->
 <ModalCopiarValidade IsVisible="exibirModalCopiar"
@@ -439,6 +506,11 @@
 
     private List<RegistroValidade> validades = new();
     private bool carregando = true;
+
+    // Seleção de Itens e Compartilhamento WhatsApp
+    private HashSet<int> itensSelecionadosIds = new();
+    private bool exibirModalWhatsApp = false;
+    private List<RegistroValidade> itensParaCompartilhar = new();
 
     // Paginação e Busca Instantânea
     private int paginaAtual = 1;
@@ -546,6 +618,7 @@
     {
         carregando = true;
         paginaAtual = 1;
+        itensSelecionadosIds.Clear();
         int? lojaId = lojaFiltroId > 0 ? lojaFiltroId : null;
 
         validades = await ValidadeService.GetValidadesAtivasAsync(
@@ -653,6 +726,91 @@
         _ = Task.Run(async () =>
         {
             await Task.Delay(3500);
+            feedbackToast = string.Empty;
+            await InvokeAsync(StateHasChanged);
+        });
+    }
+
+    // Métodos de Seleção e WhatsApp
+    private bool TodosDaPaginaSelecionados =>
+        ItensPaginados.Any() && ItensPaginados.All(i => itensSelecionadosIds.Contains(i.Id));
+
+    private void ToggleItemSelecionado(int id, bool selecionado)
+    {
+        if (selecionado)
+            itensSelecionadosIds.Add(id);
+        else
+            itensSelecionadosIds.Remove(id);
+    }
+
+    private void ToggleSelecionarTodosDaPagina(ChangeEventArgs e)
+    {
+        bool selecionar = (bool)(e.Value ?? false);
+        var idsPagina = ItensPaginados.Select(i => i.Id).ToList();
+
+        if (selecionar)
+        {
+            foreach (var id in idsPagina)
+                itensSelecionadosIds.Add(id);
+        }
+        else
+        {
+            foreach (var id in idsPagina)
+                itensSelecionadosIds.Remove(id);
+        }
+    }
+
+    private void DesmarcarTodos()
+    {
+        itensSelecionadosIds.Clear();
+    }
+
+    private string NomeLojaAtual =>
+        lojaFiltroId > 0 
+            ? (lojas.FirstOrDefault(l => l.Id == lojaFiltroId)?.Nome ?? "Loja") 
+            : "Todas as Lojas";
+
+    private void CompartilharItemIndividual(RegistroValidade item)
+    {
+        itensParaCompartilhar = new List<RegistroValidade> { item };
+        exibirModalWhatsApp = true;
+    }
+
+    private void AbrirModalCompartilharSelecionados()
+    {
+        if (!itensSelecionadosIds.Any()) return;
+        itensParaCompartilhar = validades.Where(v => itensSelecionadosIds.Contains(v.Id)).ToList();
+        exibirModalWhatsApp = true;
+    }
+
+    private void FecharModalWhatsApp()
+    {
+        exibirModalWhatsApp = false;
+        itensParaCompartilhar = new();
+    }
+
+    private async Task CopiarSelecionadosRapido()
+    {
+        if (!itensSelecionadosIds.Any()) return;
+        var selecionados = validades.Where(v => itensSelecionadosIds.Contains(v.Id)).ToList();
+
+        var linhas = selecionados.Select(v => 
+            $"{v.Produto?.CodigoBarras ?? "-"} {v.Produto?.Nome ?? "Produto"} {v.DataValidade:dd/MM/yyyy}");
+        var texto = string.Join("\n", linhas);
+
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("navigator.clipboard.writeText", texto);
+            feedbackToast = $"📋 {selecionados.Count} produto(s) copiado(s) para a área de transferência!";
+        }
+        catch
+        {
+            feedbackToast = "Não foi possível copiar automaticamente. Use a opção Enviar WhatsApp para ver o texto.";
+        }
+
+        _ = Task.Run(async () =>
+        {
+            await Task.Delay(3000);
             feedbackToast = string.Empty;
             await InvokeAsync(StateHasChanged);
         });

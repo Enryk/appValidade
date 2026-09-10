@@ -1,0 +1,190 @@
+@namespace MeuApp.Shared.Components
+@inject IJSRuntime JSRuntime
+
+@if (IsVisible && Itens != null && Itens.Any())
+{
+    <div class="modal-backdrop-custom" @onclick="Fechar">
+        <div class="modal-dialog-custom modal-whatsapp" @onclick:stopPropagation="true">
+            <div class="modal-header-custom modal-header-whatsapp">
+                <div class="header-icon-wrapper whatsapp-icon-bg">
+                    <span class="header-icon">💬</span>
+                </div>
+                <div class="header-texts">
+                    <h3 class="modal-title-custom">Compartilhar via WhatsApp</h3>
+                    <p class="modal-subtitle-custom">@Itens.Count produto(s) selecionado(s) para envio</p>
+                </div>
+                <button type="button" class="btn-close-custom" @onclick="Fechar">×</button>
+            </div>
+
+            <div class="modal-body-custom">
+                @* Seletor de Formato de Mensagem *@
+                <div class="form-group-section">
+                    <label class="section-label">Estilo da Mensagem:</label>
+                    <div class="formato-opcoes-grid">
+                        <button type="button" 
+                                class="btn-formato-opcao @(formatoSelecionado == "organizado" ? "selected" : "")"
+                                @onclick='() => AlterarFormato("organizado")'>
+                            <span class="formato-badge">Recomendado</span>
+                            <span class="formato-title">📋 Completo / Organizado</span>
+                            <span class="formato-desc">Com cabeçalho da loja, emojis, prazos de validade e negrito</span>
+                        </button>
+
+                        <button type="button" 
+                                class="btn-formato-opcao @(formatoSelecionado == "compacto" ? "selected" : "")"
+                                @onclick='() => AlterarFormato("compacto")'>
+                            <span class="formato-badge badge-clean">Simples</span>
+                            <span class="formato-title">📝 Linha a Linha</span>
+                            <span class="formato-desc">Código, Nome do Produto e Data (ex: 789... Produto 14/09/2026)</span>
+                        </button>
+                    </div>
+                </div>
+
+                @* Prévia Editável da Mensagem *@
+                <div class="form-group-section">
+                    <div class="preview-label-row">
+                        <label class="section-label">Prévia do Texto para Envio:</label>
+                        <span class="preview-help">Você pode editar ou adicionar observações antes de enviar</span>
+                    </div>
+                    <textarea class="textarea-mensagem-whatsapp" 
+                              rows="9" 
+                              @bind="textoMensagem" 
+                              placeholder="Carregando mensagem..."></textarea>
+                </div>
+
+                @if (!string.IsNullOrEmpty(feedbackCopiado))
+                {
+                    <div class="feedback-copiado-banner">
+                        <span>@feedbackCopiado</span>
+                    </div>
+                }
+            </div>
+
+            <div class="modal-footer-custom modal-footer-whatsapp">
+                <button type="button" class="btn-cancelar-custom" @onclick="Fechar">
+                    Cancelar
+                </button>
+                <button type="button" class="btn-copiar-texto" @onclick="CopiarTexto">
+                    📋 Copiar Texto
+                </button>
+                <button type="button" class="btn-enviar-whatsapp" @onclick="AbrirWhatsApp">
+                    <span class="wpp-icon">🟢</span> Enviar no WhatsApp
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public bool IsVisible { get; set; }
+    [Parameter] public List<RegistroValidade> Itens { get; set; } = new();
+    [Parameter] public string NomeLoja { get; set; } = string.Empty;
+    [Parameter] public EventCallback OnFechar { get; set; }
+
+    private string formatoSelecionado = "organizado";
+    private string textoMensagem = string.Empty;
+    private string feedbackCopiado = string.Empty;
+
+    protected override void OnParametersSet()
+    {
+        if (IsVisible && Itens.Any())
+        {
+            GerarTexto();
+            feedbackCopiado = string.Empty;
+        }
+    }
+
+    private void AlterarFormato(string formato)
+    {
+        formatoSelecionado = formato;
+        GerarTexto();
+    }
+
+    private void GerarTexto()
+    {
+        if (!Itens.Any())
+        {
+            textoMensagem = string.Empty;
+            return;
+        }
+
+        var sb = new System.Text.StringBuilder();
+
+        if (formatoSelecionado == "organizado")
+        {
+            var lojaInfo = !string.IsNullOrWhiteSpace(NomeLoja) ? $" - {NomeLoja}" : "";
+            sb.AppendLine($"📋 *ALERTA DE VALIDADES{lojaInfo}*");
+            sb.AppendLine($"📅 *Data:* {DateTime.Today:dd/MM/yyyy}");
+            sb.AppendLine($"📦 *Total:* {Itens.Count} produto(s)");
+            sb.AppendLine("─────────────────────");
+
+            int index = 1;
+            foreach (var item in Itens)
+            {
+                var cod = item.Produto?.CodigoBarras ?? "-";
+                var nome = item.Produto?.Nome ?? "Produto";
+                var val = item.DataValidade.ToString("dd/MM/yyyy");
+
+                string statusIcon = item.EstaVencido ? "🚨" : (item.DiasRestantes <= 0 ? "⚠️" : "⏳");
+                string statusMsg = item.MensagemPrazo;
+
+                sb.AppendLine($"{index}️⃣ *{nome}*");
+                sb.AppendLine($"▫️ Código: `{cod}`");
+                sb.AppendLine($"▫️ Validade: *{val}* ({statusIcon} {statusMsg})");
+                sb.AppendLine();
+                index++;
+            }
+
+            sb.AppendLine("─────────────────────");
+            sb.AppendLine("⚠️ *Ação:* Favor conferir no ponto de venda.");
+        }
+        else // formato compacto linha a linha
+        {
+            foreach (var item in Itens)
+            {
+                var cod = (item.Produto?.CodigoBarras ?? string.Empty).Trim();
+                var nome = (item.Produto?.Nome ?? string.Empty).Trim();
+                var val = item.DataValidade.ToString("dd/MM/yyyy");
+
+                sb.AppendLine($"{cod} {nome} {val}");
+            }
+        }
+
+        textoMensagem = sb.ToString().TrimEnd();
+    }
+
+    private async Task CopiarTexto()
+    {
+        if (string.IsNullOrWhiteSpace(textoMensagem)) return;
+
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("navigator.clipboard.writeText", textoMensagem);
+            feedbackCopiado = "✅ Texto copiado para a área de transferência! Pronto para colar.";
+        }
+        catch
+        {
+            feedbackCopiado = "⚠️ Selecione e copie o texto manualmente da caixa acima.";
+        }
+
+        _ = Task.Run(async () =>
+        {
+            await Task.Delay(3500);
+            feedbackCopiado = string.Empty;
+            await InvokeAsync(StateHasChanged);
+        });
+    }
+
+    private async Task AbrirWhatsApp()
+    {
+        if (string.IsNullOrWhiteSpace(textoMensagem)) return;
+
+        var url = $"https://api.whatsapp.com/send?text={Uri.EscapeDataString(textoMensagem)}";
+        await JSRuntime.InvokeVoidAsync("open", url, "_blank");
+        await Fechar();
+    }
+
+    private async Task Fechar()
+    {
+        await OnFechar.InvokeAsync();
+    }
+}
