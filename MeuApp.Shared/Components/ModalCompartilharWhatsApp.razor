@@ -78,7 +78,10 @@
     [Parameter] public bool IsVisible { get; set; }
     [Parameter] public List<RegistroValidade> Itens { get; set; } = new();
     [Parameter] public string NomeLoja { get; set; } = string.Empty;
+    [Parameter] public string? NomeLojaPadrao { get; set; }
     [Parameter] public EventCallback OnFechar { get; set; }
+    [Parameter(CaptureUnmatchedValues = true)]
+    public Dictionary<string, object>? ParametrosAdicionais { get; set; }
 
     private string formatoSelecionado = "organizado";
     private string textoMensagem = string.Empty;
@@ -111,7 +114,10 @@
 
         if (formatoSelecionado == "organizado")
         {
-            var lojaInfo = !string.IsNullOrWhiteSpace(NomeLoja) ? $" - {NomeLoja}" : "";
+            var lojaTexto = !string.IsNullOrWhiteSpace(NomeLoja) 
+                ? NomeLoja 
+                : (!string.IsNullOrWhiteSpace(NomeLojaPadrao) ? NomeLojaPadrao : "");
+            var lojaInfo = !string.IsNullOrWhiteSpace(lojaTexto) ? $" - {lojaTexto}" : "";
             sb.AppendLine($"📋 *ALERTA DE VALIDADES{lojaInfo}*");
             sb.AppendLine($"📅 *Data:* {DateTime.Today:dd/MM/yyyy}");
             sb.AppendLine($"📦 *Total:* {Itens.Count} produto(s)");

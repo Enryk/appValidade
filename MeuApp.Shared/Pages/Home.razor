@@ -209,7 +209,7 @@
                                     <input type="checkbox" 
                                            class="checkbox-custom-item" 
                                            checked="@itensSelecionadosIds.Contains(item.Id)" 
-                                           @onchange="(e) => ToggleItemSelecionado(item.Id, (bool)e.Value!)" />
+                                           @onchange="(e) => ToggleItemSelecionado(item.Id, (bool)(e.Value ?? false))" />
                                 </td>
                                 <td>
                                     <span class="loja-chip">@(item.Loja?.Nome ?? "Loja")</span>
@@ -325,7 +325,7 @@
                                 <input type="checkbox" 
                                        class="checkbox-custom-item" 
                                        checked="@itensSelecionadosIds.Contains(item.Id)" 
-                                       @onchange="(e) => ToggleItemSelecionado(item.Id, (bool)e.Value!)" />
+                                       @onchange="(e) => ToggleItemSelecionado(item.Id, (bool)(e.Value ?? false))" />
                                 <span class="loja-chip">@(item.Loja?.Nome ?? "Loja")</span>
                             </div>
                             @if (item.EstaVencido)
@@ -481,6 +481,7 @@
 <!-- Modal de Compartilhamento via WhatsApp -->
 <ModalCompartilharWhatsApp IsVisible="exibirModalWhatsApp"
                            Itens="itensParaCompartilhar"
+                           NomeLoja="@NomeLojaAtual"
                            NomeLojaPadrao="@NomeLojaAtual"
                            OnFechar="FecharModalWhatsApp" />
 

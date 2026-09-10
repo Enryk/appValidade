@@ -12,7 +12,10 @@
                 <ChildContent>
                     @Body
                 </ChildContent>
-                <ErrorContent>
+                <ErrorContent Context="ex">
+                    @{
+                        Console.Error.WriteLine($"[UI ERROR]: {ex}");
+                    }
                     <div class="error-boundary-box">
                         <div class="error-boundary-card">
                             <span class="error-boundary-icon">🛡️</span>
