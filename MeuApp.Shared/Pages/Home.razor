@@ -202,39 +202,39 @@
                 <table class="tabela-monitoramento">
                     <thead>
                         <tr>
-                            <th style="width: 44px; text-align: center;">
+                            <th class="col-th-checkbox">
                                 <input type="checkbox" 
                                        class="checkbox-custom-item" 
                                        checked="@TodosDaPaginaSelecionados" 
                                        @onchange="ToggleSelecionarTodosDaPagina" 
                                        title="Selecionar / Desmarcar todos da página atual" />
                             </th>
-                            <th>Loja</th>
-                            <th>Código</th>
-                            <th>Nome do Produto</th>
-                            <th>Validade & Prazo</th>
-                            <th>Data Coleta</th>
-                            <th style="width: 75px; text-align: center;">Promoção</th>
-                            <th style="text-align: right; width: 125px;">Ação</th>
+                            <th class="col-th-loja">Loja</th>
+                            <th class="col-th-codigo">Código</th>
+                            <th class="col-th-produto">Nome do Produto</th>
+                            <th class="col-th-validade">Validade & Prazo</th>
+                            <th class="col-th-coleta">Data Coleta</th>
+                            <th class="col-th-promocao">Promoção</th>
+                            <th class="col-th-acoes">Ação</th>
                         </tr>
                     </thead>
                     <tbody>
                         @foreach (var item in ItensPaginados)
                         {
                             <tr class="item-row @(itensSelecionadosIds.Contains(item.Id) ? "row-selected" : "") @(item.EstaVencido ? "row-alerta-vencido" : (item.DiasRestantes <= 7 ? "row-destaque-7dias" : ""))">
-                                <td style="text-align: center;">
+                                <td class="col-td-checkbox">
                                     <input type="checkbox" 
                                            class="checkbox-custom-item" 
                                            checked="@itensSelecionadosIds.Contains(item.Id)" 
                                            @onchange="(e) => ToggleItemSelecionado(item.Id, (bool)(e.Value ?? false))" />
                                 </td>
-                                <td>
+                                <td class="col-td-loja">
                                     <span class="loja-chip">@(item.Loja?.Nome ?? "Loja")</span>
                                 </td>
-                                <td>
+                                <td class="col-td-codigo">
                                     <code class="codigo-barras-cell">@(item.Produto?.CodigoBarras ?? "-")</code>
                                 </td>
-                                <td>
+                                <td class="col-td-produto">
                                     <div class="prod-nome-wrapper">
                                         @if (item.EstaVencido)
                                         {
@@ -247,7 +247,7 @@
                                         <strong class="produto-nome-cell">@(item.Produto?.Nome ?? "-")</strong>
                                     </div>
                                 </td>
-                                <td>
+                                <td class="col-td-validade">
                                     <div class="validade-cell-group">
                                         <span class="validade-data-destaque @(item.EstaVencido ? "data-vencida" : (item.DiasRestantes <= 7 ? "data-destaque-7dias" : ""))">
                                             @item.DataValidade.ToString("dd/MM/yyyy")
@@ -284,18 +284,21 @@
                                         }
                                     </div>
                                 </td>
-                                <td>
+                                <td class="col-td-coleta">
                                     <span class="data-coleta-cell">@item.DataColeta.ToString("dd/MM/yyyy")</span>
                                 </td>
-                                <td style="text-align: center;">
-                                    <label class="switch-promocao">
+                                <td class="col-td-promocao">
+                                    <label class="switch-promocao" title="Clique para alternar status de promoção">
                                         <input type="checkbox" 
                                                checked="@item.EmPromocao" 
                                                @onchange="(e) => TogglePromocao(item, (bool)e.Value!)" />
-                                        <span class="switch-label">@(item.EmPromocao ? "Sim" : "Não")</span>
+                                        <span class="switch-slider"></span>
+                                        <span class="switch-label @(item.EmPromocao ? "promo-ativa-txt" : "promo-inativa-txt")">
+                                            @(item.EmPromocao ? "Sim" : "Não")
+                                        </span>
                                     </label>
                                 </td>
-                                <td style="text-align: right;">
+                                <td class="col-td-acoes">
                                     <div class="table-acoes-group">
                                         <button type="button" 
                                                 class="btn-whatsapp-mini" 
@@ -390,11 +393,14 @@
 
                             <div class="card-rodape">
                                 <div class="card-promocao-row">
-                                    <label class="switch-promocao">
+                                    <label class="switch-promocao" title="Alternar status de promoção">
                                         <input type="checkbox" 
                                                checked="@item.EmPromocao" 
                                                @onchange="(e) => TogglePromocao(item, (bool)(e.Value ?? false))" />
-                                        <span class="switch-label">Item em Promoção</span>
+                                        <span class="switch-slider"></span>
+                                        <span class="switch-label @(item.EmPromocao ? "promo-ativa-txt" : "promo-inativa-txt")">
+                                            @(item.EmPromocao ? "Item em Promoção (Sim)" : "Item em Promoção (Não)")
+                                        </span>
                                     </label>
                                 </div>
 

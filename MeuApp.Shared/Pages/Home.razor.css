@@ -481,9 +481,9 @@
 
 .tabela-monitoramento {
     width: 100%;
-    min-width: 760px;
-    border-collapse: separate;
-    border-spacing: 0;
+    min-width: 780px;
+    border-collapse: collapse;
+    table-layout: auto;
 }
 
 .tabela-monitoramento th {
@@ -493,9 +493,10 @@
     color: #64748b;
     text-transform: uppercase;
     padding: 11px 12px;
-    border-bottom: 1.5px solid #e2e8f0;
+    border-bottom: 2px solid #e2e8f0;
     background-color: #f8fafc;
     white-space: nowrap;
+    letter-spacing: 0.3px;
 }
 
 .tabela-monitoramento td {
@@ -506,66 +507,48 @@
     vertical-align: middle;
 }
 
-/* Coluna Checkbox Fixa à Esquerda */
-.tabela-monitoramento th:first-child {
-    position: sticky;
-    left: 0;
-    z-index: 10;
-    background-color: #f8fafc;
-    box-shadow: 3px 0 6px -2px rgba(0, 0, 0, 0.06);
-    text-align: center;
+/* Larguras e Alinhamentos Proporcionais das Colunas */
+.col-th-checkbox, .col-td-checkbox {
     width: 44px;
-}
-
-.tabela-monitoramento td:first-child {
-    position: sticky;
-    left: 0;
-    z-index: 9;
-    background-color: #ffffff;
-    box-shadow: 3px 0 6px -2px rgba(0, 0, 0, 0.06);
     text-align: center;
-    width: 44px;
 }
 
-/* Coluna Ações Fixa à Direita */
-.tabela-monitoramento th:last-child {
-    position: sticky;
-    right: 0;
-    z-index: 10;
-    background-color: #f8fafc;
-    box-shadow: -3px 0 6px -2px rgba(0, 0, 0, 0.06);
+.col-th-loja, .col-td-loja {
+    width: 110px;
+    white-space: nowrap;
+}
+
+.col-th-codigo, .col-td-codigo {
+    width: 125px;
+    white-space: nowrap;
+}
+
+.col-th-produto, .col-td-produto {
+    /* Coluna principal flexível: expande e preenche naturalmente todo o espaço restante */
+    min-width: 220px;
+}
+
+.col-th-validade, .col-td-validade {
+    width: 140px;
+    white-space: nowrap;
+}
+
+.col-th-coleta, .col-td-coleta {
+    width: 100px;
+    text-align: center;
+    white-space: nowrap;
+}
+
+.col-th-promocao, .col-td-promocao {
+    width: 100px;
+    text-align: center;
+    white-space: nowrap;
+}
+
+.col-th-acoes, .col-td-acoes {
+    width: 135px;
     text-align: right;
-    width: 130px;
-    min-width: 130px;
-    max-width: 140px;
-}
-
-.tabela-monitoramento td:last-child {
-    position: sticky;
-    right: 0;
-    z-index: 9;
-    background-color: #ffffff;
-    box-shadow: -3px 0 6px -2px rgba(0, 0, 0, 0.06);
-    text-align: right;
-    width: 130px;
-    min-width: 130px;
-    max-width: 140px;
-}
-
-/* Sincronização de cores de fundo para células sticky */
-.item-row.row-alerta-vencido td:first-child,
-.item-row.row-alerta-vencido td:last-child {
-    background-color: #fef2f2 !important;
-}
-
-.item-row.row-destaque-7dias td:first-child,
-.item-row.row-destaque-7dias td:last-child {
-    background-color: #fffbeb !important;
-}
-
-.item-row.row-selected td:first-child,
-.item-row.row-selected td:last-child {
-    background-color: #f0fdf4 !important;
+    white-space: nowrap;
 }
 
 /* DESTAQUES VISUAIS DE VENCIMENTO */
@@ -691,8 +674,6 @@
     color: #0f172a;
     font-size: 0.88rem;
     font-weight: 700;
-    min-width: 150px;
-    max-width: 320px;
     line-height: 1.35;
     display: inline-block;
     word-break: break-word;
@@ -721,10 +702,60 @@
 .switch-promocao {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: 7px;
     cursor: pointer;
+    user-select: none;
+    font-size: 0.8rem;
+    font-weight: 700;
+}
+
+.switch-promocao input {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.switch-slider {
+    position: relative;
+    display: inline-block;
+    width: 32px;
+    height: 18px;
+    background-color: #cbd5e1;
+    border-radius: 20px;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+.switch-slider:before {
+    position: absolute;
+    content: "";
+    height: 14px;
+    width: 14px;
+    left: 2px;
+    bottom: 2px;
+    background-color: #ffffff;
+    border-radius: 50%;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+}
+
+.switch-promocao input:checked + .switch-slider {
+    background-color: #f59e0b;
+}
+
+.switch-promocao input:checked + .switch-slider:before {
+    transform: translateX(14px);
+}
+
+.promo-ativa-txt {
+    color: #b45309;
+    font-weight: 800;
+}
+
+.promo-inativa-txt {
+    color: #64748b;
     font-weight: 600;
-    font-size: 0.82rem;
 }
 
 .table-acoes-group {
