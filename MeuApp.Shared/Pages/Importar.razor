@@ -320,7 +320,8 @@
         }
         catch (Exception ex)
         {
-            feedbackErro = $"Erro ao salvar importação no banco de dados: {ex.Message}";
+            var msg = ex.InnerException != null ? $"{ex.Message} ({ex.InnerException.Message})" : ex.Message;
+            feedbackErro = $"Erro ao salvar importação no banco de dados: {msg}";
         }
         finally
         {

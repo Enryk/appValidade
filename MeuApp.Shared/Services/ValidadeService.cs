@@ -52,6 +52,50 @@ public class ValidadeService : IValidadeService
                 ";
                 await cmdAlter.ExecuteNonQueryAsync();
             }
+
+            // 2. Migra Produtos para remover LojaId e FK legada caso a tabela antiga ainda possua essa coluna
+            using var cmdCheckProd = conn.CreateCommand();
+            cmdCheckProd.CommandText = "PRAGMA table_info(Produtos);";
+            using var readerProd = await cmdCheckProd.ExecuteReaderAsync();
+            var prodTemLojaId = false;
+            var temTabelaProd = false;
+            while (await readerProd.ReadAsync())
+            {
+                temTabelaProd = true;
+                var col = readerProd.GetString(1);
+                if (col.Equals("LojaId", StringComparison.OrdinalIgnoreCase))
+                {
+                    prodTemLojaId = true;
+                    break;
+                }
+            }
+            await readerProd.CloseAsync();
+
+            if (temTabelaProd && prodTemLojaId)
+            {
+                using var cmdMigrateProd = conn.CreateCommand();
+                cmdMigrateProd.CommandText = @"
+                    PRAGMA foreign_keys=OFF;
+
+                    CREATE TABLE ""Produtos_new"" (
+                        ""Id"" INTEGER NOT NULL CONSTRAINT ""PK_Produtos"" PRIMARY KEY AUTOINCREMENT,
+                        ""CodigoBarras"" TEXT NOT NULL,
+                        ""Nome"" TEXT NOT NULL
+                    );
+
+                    INSERT INTO ""Produtos_new"" (""Id"", ""CodigoBarras"", ""Nome"")
+                    SELECT ""Id"", ""CodigoBarras"", ""Nome"" FROM ""Produtos"";
+
+                    DROP TABLE ""Produtos"";
+
+                    ALTER TABLE ""Produtos_new"" RENAME TO ""Produtos"";
+
+                    CREATE UNIQUE INDEX IF NOT EXISTS ""IX_Produtos_CodigoBarras"" ON ""Produtos"" (""CodigoBarras"");
+
+                    PRAGMA foreign_keys=ON;
+                ";
+                await cmdMigrateProd.ExecuteNonQueryAsync();
+            }
         }
         catch
         {
@@ -723,35 +767,62 @@ public class ValidadeService : IValidadeService
             return resultado;
         }
 
+        // Garante que migrações de banco pendentes (como remoção de LojaId legada em Produtos) foram executadas
+        await InicializarBancoESeedAsync();
+
         await using var context = await _contextFactory.CreateDbContextAsync();
 
-        // Identifica e cria produtos no catálogo compartilhado
-        var codigos = itensValidos.Select(i => i.CodigoBarras).Distinct().ToList();
-        var produtosNoBanco = await context.Produtos
-            .Where(p => codigos.Contains(p.CodigoBarras))
-            .ToDictionaryAsync(p => p.CodigoBarras, p => p);
+        // Identifica e cria produtos no catálogo compartilhado em lotes (evitando limite de parâmetros do SQLite)
+        var codigos = itensValidos
+            .Select(i => (i.CodigoBarras ?? string.Empty).Trim())
+            .Where(c => !string.IsNullOrEmpty(c))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        var produtosNoBanco = new Dictionary<string, Produto>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var chunk in codigos.Chunk(500))
+        {
+            var chunkList = chunk.ToList();
+            var doBanco = await context.Produtos
+                .Where(p => chunkList.Contains(p.CodigoBarras))
+                .ToListAsync();
+
+            foreach (var p in doBanco)
+            {
+                produtosNoBanco[p.CodigoBarras] = p;
+            }
+        }
 
         var hoje = DateTime.Today;
 
         foreach (var item in itensValidos)
         {
-            if (!produtosNoBanco.TryGetValue(item.CodigoBarras, out var produto))
+            var codLimpo = (item.CodigoBarras ?? string.Empty).Trim();
+            if (codLimpo.Length > 100) codLimpo = codLimpo.Substring(0, 100);
+
+            var nomeLimpo = (item.NomeProduto ?? string.Empty).Trim();
+            if (nomeLimpo.Length > 250) nomeLimpo = nomeLimpo.Substring(0, 250);
+
+            if (string.IsNullOrEmpty(codLimpo)) continue;
+
+            if (!produtosNoBanco.TryGetValue(codLimpo, out var produto))
             {
                 produto = new Produto
                 {
-                    CodigoBarras = item.CodigoBarras.Trim(),
-                    Nome = item.NomeProduto.Trim()
+                    CodigoBarras = codLimpo,
+                    Nome = string.IsNullOrEmpty(nomeLimpo) ? $"Produto {codLimpo}" : nomeLimpo
                 };
                 context.Produtos.Add(produto);
-                produtosNoBanco[item.CodigoBarras] = produto;
+                produtosNoBanco[codLimpo] = produto;
                 resultado.ProdutosCadastrados++;
             }
             else
             {
-                // Se o nome no banco estiver muito curto e a planilha trouxer um nome melhor
-                if (!string.IsNullOrWhiteSpace(item.NomeProduto) && item.NomeProduto.Trim().Length > produto.Nome.Length)
+                // Se o nome no banco for genérico ou curto e a planilha trouxer um nome melhor
+                if (!string.IsNullOrWhiteSpace(nomeLimpo) && nomeLimpo.Length > produto.Nome.Length)
                 {
-                    produto.Nome = item.NomeProduto.Trim();
+                    produto.Nome = nomeLimpo;
                     resultado.ProdutosAtualizados++;
                 }
             }
@@ -760,19 +831,29 @@ public class ValidadeService : IValidadeService
         await context.SaveChangesAsync();
 
         // Carrega validades existentes na loja de destino para evitar duplicatas ativas com mesma data
-        var produtosIds = produtosNoBanco.Values.Select(p => p.Id).ToList();
-        var validadesExistentes = await context.RegistrosValidade
-            .Where(v => v.LojaId == lojaDestinoId && produtosIds.Contains(v.ProdutoId) && v.Status == "Ativo")
-            .Select(v => new { v.ProdutoId, v.DataValidade })
-            .ToListAsync();
+        var produtosIds = produtosNoBanco.Values.Select(p => p.Id).Distinct().ToList();
+        var validadesJaAdicionadas = new HashSet<(int ProdutoId, DateTime DataValidade)>();
 
-        var validadesJaAdicionadas = new HashSet<(int ProdutoId, DateTime DataValidade)>(
-            validadesExistentes.Select(v => (v.ProdutoId, v.DataValidade.Date))
-        );
+        foreach (var chunk in produtosIds.Chunk(500))
+        {
+            var chunkList = chunk.ToList();
+            var validadesExistentes = await context.RegistrosValidade
+                .Where(v => v.LojaId == lojaDestinoId && chunkList.Contains(v.ProdutoId) && v.Status == "Ativo")
+                .Select(v => new { v.ProdutoId, v.DataValidade })
+                .ToListAsync();
+
+            foreach (var v in validadesExistentes)
+            {
+                validadesJaAdicionadas.Add((v.ProdutoId, v.DataValidade.Date));
+            }
+        }
 
         foreach (var item in itensValidos)
         {
-            var produto = produtosNoBanco[item.CodigoBarras];
+            var codLimpo = (item.CodigoBarras ?? string.Empty).Trim();
+            if (codLimpo.Length > 100) codLimpo = codLimpo.Substring(0, 100);
+
+            if (!produtosNoBanco.TryGetValue(codLimpo, out var produto)) continue;
             var dataVal = item.DataValidade!.Value.Date;
 
             if (validadesJaAdicionadas.Contains((produto.Id, dataVal)))
