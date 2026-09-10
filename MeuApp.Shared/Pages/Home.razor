@@ -341,18 +341,20 @@
                         </div>
 
                         <div class="card-rodape">
-                            <label class="switch-promocao">
-                                <input type="checkbox" 
-                                       checked="@item.EmPromocao" 
-                                       @onchange="(e) => TogglePromocao(item, (bool)e.Value!)" />
-                                <span>Em Promoção</span>
-                            </label>
+                            <div class="card-promocao-row">
+                                <label class="switch-promocao">
+                                    <input type="checkbox" 
+                                           checked="@item.EmPromocao" 
+                                           @onchange="(e) => TogglePromocao(item, (bool)e.Value!)" />
+                                    <span class="switch-label">Item em Promoção</span>
+                                </label>
+                            </div>
 
-                            <div class="card-acoes-botoes">
-                                <button type="button" class="btn-copiar-loja" @onclick="() => AbrirModalCopiar(item)">
+                            <div class="card-acoes-grid">
+                                <button type="button" class="btn-copiar-loja btn-mobile-acao" @onclick="() => AbrirModalCopiar(item)">
                                     📋 Replicar
                                 </button>
-                                <button type="button" class="btn-dar-baixa" @onclick="() => AbrirModalBaixa(item)">
+                                <button type="button" class="btn-dar-baixa btn-mobile-acao" @onclick="() => AbrirModalBaixa(item)">
                                     Dar Baixa
                                 </button>
                             </div>
@@ -508,16 +510,16 @@
 
     private IEnumerable<int> ObterPaginasVisiveis()
     {
-        int delta = 2;
+        int delta = 1;
         int inicio = Math.Max(1, paginaAtual - delta);
         int fim = Math.Min(TotalPaginas, paginaAtual + delta);
 
-        if (fim - inicio < 4)
+        if (fim - inicio < 2)
         {
             if (inicio == 1)
-                fim = Math.Min(TotalPaginas, inicio + 4);
+                fim = Math.Min(TotalPaginas, inicio + 2);
             else if (fim == TotalPaginas)
-                inicio = Math.Max(1, fim - 4);
+                inicio = Math.Max(1, fim - 2);
         }
 
         for (int i = inicio; i <= fim; i++)

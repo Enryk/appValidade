@@ -729,11 +729,32 @@
 
 .card-rodape {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
+    flex-direction: column;
+    gap: 8px;
     margin-top: 4px;
-    padding-top: 8px;
+    padding-top: 10px;
     border-top: 1px solid #f1f5f9;
+}
+
+.card-promocao-row {
+    display: flex;
+    align-items: center;
+}
+
+.card-acoes-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    width: 100%;
+}
+
+.btn-mobile-acao {
+    width: 100%;
+    justify-content: center;
+    padding: 8px 10px;
+    font-size: 0.82rem;
+    min-height: 38px;
+    box-sizing: border-box;
 }
 
 /* Barra de Paginação no Rodapé */
@@ -801,36 +822,195 @@
     box-shadow: 0 2px 6px rgba(99, 102, 241, 0.3);
 }
 
-/* Responsividade Mobile */
+/* Responsividade Mobile e Telas Estreitas */
 @media (max-width: 768px) {
+    .monitoramento-page {
+        padding: 12px 10px 40px 10px;
+    }
+
+    .page-header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+        margin-bottom: 16px;
+    }
+
+    .page-title {
+        font-size: 1.35rem;
+    }
+
+    .btn-ir-coleta {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+        margin-bottom: 14px;
+    }
+
+    .stat-card {
+        padding: 10px 8px;
+        border-radius: 12px;
+    }
+
+    .stat-num {
+        font-size: 1.35rem;
+    }
+
+    .stat-lbl {
+        font-size: 0.65rem;
+    }
+
+    .filtros-container {
+        padding: 12px;
+        margin-bottom: 16px;
+        border-radius: 12px;
+    }
+
+    .filtro-linha-superior {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+    }
+
+    .filtro-loja-group {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 6px;
+        width: 100%;
+    }
+
+    .select-loja {
+        width: 100%;
+    }
+
+    .atalhos-filtros-rapidos {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 6px;
+        width: 100%;
+    }
+
+    .btn-filtro-atalho {
+        padding: 6px 4px;
+        font-size: 0.74rem;
+        min-height: 36px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        white-space: nowrap;
+    }
+
+    .listagem-card {
+        padding: 12px;
+        border-radius: 12px;
+    }
+
+    .listagem-header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+    }
+
+    .paginacao-topo-toolbar {
+        width: 100%;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+    }
+
+    .busca-input-wrapper {
+        width: 100%;
+    }
+
+    .input-busca-produtos {
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    .seletor-limite-wrapper {
+        width: 100%;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .select-limite-pagina {
+        flex: 1;
+        max-width: 180px;
+    }
+
     .table-responsive-desktop {
         display: none;
     }
 
     .cards-mobile-view {
         display: flex;
+        flex-direction: column;
+        gap: 10px;
     }
 
-    .paginacao-topo-toolbar {
-        width: 100%;
-        justify-content: space-between;
+    .mobile-item-card {
+        padding: 12px;
+        border-radius: 10px;
+        gap: 8px;
     }
 
-    .input-busca-produtos {
-        width: 100%;
+    .card-prod-nome {
+        font-size: 0.92rem;
+        line-height: 1.35;
     }
 
-    .busca-input-wrapper {
-        flex: 1;
+    .card-barcode {
+        font-size: 0.75rem;
+    }
+
+    .card-datas-grid {
+        padding: 6px 8px;
+        gap: 6px;
+    }
+
+    .data-val {
+        font-size: 0.82rem;
     }
 
     .paginacao-rodape {
         flex-direction: column;
         align-items: center;
         text-align: center;
+        gap: 10px;
+        margin-top: 14px;
+        padding-top: 14px;
+    }
+
+    .paginacao-info {
+        font-size: 0.78rem;
     }
 
     .paginacao-botoes {
         justify-content: center;
+        width: 100%;
+        gap: 4px;
+    }
+
+    .btn-nav-page {
+        padding: 6px 8px;
+        font-size: 0.76rem;
+        min-height: 34px;
+    }
+
+    .btn-num-page {
+        min-width: 30px;
+        padding: 6px 4px;
+    }
+}
+
+@media (max-width: 400px) {
+    .atalhos-filtros-rapidos {
+        grid-template-columns: repeat(2, 1fr);
     }
 }
