@@ -1,15 +1,23 @@
 @namespace MeuApp.Shared.Layout
 
-<div class="nav-container">
+<div class="nav-container @(IsDesktopCollapsed ? "nav-collapsed" : "")">
     <!-- Topo / Branding -->
     <div class="nav-brand-header">
-        <div class="brand-logo-area">
+        <div class="brand-logo-area" title="ValidadeApp - Controle por Loja">
             <span class="brand-icon">📦</span>
             <div class="brand-text">
                 <span class="brand-name">ValidadeApp</span>
                 <span class="brand-sub">Controle por Loja</span>
             </div>
         </div>
+
+        <!-- Botão recolher no desktop -->
+        <button type="button" 
+                class="btn-toggle-desktop" 
+                @onclick="ToggleDesktop" 
+                title="@(IsDesktopCollapsed ? "Expandir Menu" : "Recolher Menu (Ganha mais espaço na tela)")">
+            <span class="toggle-icon">@(IsDesktopCollapsed ? "▶" : "◀")</span>
+        </button>
 
         <!-- Botão Hamburger no mobile -->
         <button type="button" class="btn-toggle-menu" @onclick="ToggleNavMenu" aria-label="Abrir Menu">
@@ -22,34 +30,34 @@
         <div class="nav-section-title">MENU PRINCIPAL</div>
 
         <nav class="nav-menu-list">
-            <NavLink class="nav-custom-link" href="" Match="NavLinkMatch.All" @onclick="CollapseMenuOnMobile">
+            <NavLink class="nav-custom-link" href="" Match="NavLinkMatch.All" @onclick="CollapseMenuOnMobile" title="Monitoramento">
                 <span class="nav-icon">📋</span>
                 <span class="nav-text">Monitoramento</span>
             </NavLink>
 
-            <NavLink class="nav-custom-link" href="coleta" @onclick="CollapseMenuOnMobile">
+            <NavLink class="nav-custom-link" href="coleta" @onclick="CollapseMenuOnMobile" title="Coleta & Bipagem">
                 <span class="nav-icon">📟</span>
                 <span class="nav-text">Coleta & Bipagem</span>
             </NavLink>
 
-            <NavLink class="nav-custom-link" href="historico" @onclick="CollapseMenuOnMobile">
+            <NavLink class="nav-custom-link" href="historico" @onclick="CollapseMenuOnMobile" title="Histórico de Baixas">
                 <span class="nav-icon">📜</span>
                 <span class="nav-text">Histórico de Baixas</span>
             </NavLink>
 
-            <NavLink class="nav-custom-link" href="importar" @onclick="CollapseMenuOnMobile">
+            <NavLink class="nav-custom-link" href="importar" @onclick="CollapseMenuOnMobile" title="Importar Planilha">
                 <span class="nav-icon">📥</span>
                 <span class="nav-text">Importar Planilha</span>
             </NavLink>
 
-            <NavLink class="nav-custom-link" href="lojas" @onclick="CollapseMenuOnMobile">
+            <NavLink class="nav-custom-link" href="lojas" @onclick="CollapseMenuOnMobile" title="Gestão de Lojas">
                 <span class="nav-icon">🏬</span>
                 <span class="nav-text">Gestão de Lojas</span>
             </NavLink>
         </nav>
 
         <div class="nav-footer-status">
-            <div class="status-indicator">
+            <div class="status-indicator" title="SQLite Local Ativo">
                 <span class="status-dot"></span>
                 <span class="status-text">SQLite Local Ativo</span>
             </div>
@@ -58,11 +66,19 @@
 </div>
 
 @code {
+    [Parameter] public bool IsDesktopCollapsed { get; set; }
+    [Parameter] public EventCallback<bool> OnToggleDesktop { get; set; }
+
     private bool collapseNavMenu = true;
 
     private void ToggleNavMenu()
     {
         collapseNavMenu = !collapseNavMenu;
+    }
+
+    private async Task ToggleDesktop()
+    {
+        await OnToggleDesktop.InvokeAsync(!IsDesktopCollapsed);
     }
 
     private void CollapseMenuOnMobile()

@@ -140,14 +140,31 @@
                     }
                 </div>
 
-                <div class="seletor-limite-wrapper">
-                    <span class="limite-label">Exibir:</span>
-                    <select class="select-limite-pagina" value="@itensPorPagina" @onchange="OnItensPorPaginaAlterado">
-                        <option value="25">25 por página</option>
-                        <option value="50">50 por página</option>
-                        <option value="100">100 por página</option>
-                        <option value="250">250 por página</option>
-                    </select>
+                <div class="toolbar-controles-direita">
+                    <div class="view-mode-toggle" title="Alternar formato de visualização">
+                        <button type="button" 
+                                class="btn-toggle-view @(modoVisualizacao == "tabela" ? "active" : "")" 
+                                @onclick='() => SetModoVisualizacao("tabela")'
+                                title="Visualizar em Tabela Detalhada">
+                            ☰ Tabela
+                        </button>
+                        <button type="button" 
+                                class="btn-toggle-view @(modoVisualizacao == "cards" ? "active" : "")" 
+                                @onclick='() => SetModoVisualizacao("cards")'
+                                title="Visualizar em Cartões">
+                            ⊞ Cartões
+                        </button>
+                    </div>
+
+                    <div class="seletor-limite-wrapper">
+                        <span class="limite-label">Exibir:</span>
+                        <select class="select-limite-pagina" value="@itensPorPagina" @onchange="OnItensPorPaginaAlterado">
+                            <option value="25">25</option>
+                            <option value="50">50</option>
+                            <option value="100">100</option>
+                            <option value="250">250</option>
+                        </select>
+                    </div>
                 </div>
             </div>
         </div>
@@ -181,7 +198,7 @@
         else
         {
             <!-- Visualização em Tabela Responsiva / Desktop -->
-            <div class="table-responsive-desktop">
+            <div class="table-responsive-desktop @(modoVisualizacao == "tabela" ? "view-active" : "view-hidden")">
                 <table class="tabela-monitoramento">
                     <thead>
                         <tr>
@@ -305,101 +322,103 @@
                 </table>
             </div>
 
-            <!-- Visualização em Cards (Mobile-First) -->
-            <div class="mobile-selecao-header">
-                <label class="checkbox-label-mobile">
-                    <input type="checkbox" 
-                           class="checkbox-custom-item" 
-                           checked="@TodosDaPaginaSelecionados" 
-                           @onchange="ToggleSelecionarTodosDaPagina" />
-                    <span>Selecionar todos da página (@ItensPaginados.Count())</span>
-                </label>
-            </div>
+            <!-- Visualização em Cards (Mobile e Grid Responsiva) -->
+            <div class="cards-view-wrapper @(modoVisualizacao == "cards" ? "view-active" : "view-hidden")">
+                <div class="mobile-selecao-header">
+                    <label class="checkbox-label-mobile">
+                        <input type="checkbox" 
+                               class="checkbox-custom-item" 
+                               checked="@TodosDaPaginaSelecionados" 
+                               @onchange="ToggleSelecionarTodosDaPagina" />
+                        <span>Selecionar todos da página (@ItensPaginados.Count())</span>
+                    </label>
+                </div>
 
-            <div class="cards-mobile-view">
-                @foreach (var item in ItensPaginados)
-                {
-                    <div class="mobile-item-card @(itensSelecionadosIds.Contains(item.Id) ? "card-selected" : "") @(item.EstaVencido ? "card-alerta-vencido" : (item.DiasRestantes <= 7 ? "card-destaque-7dias" : ""))">
-                        <div class="card-topo">
-                            <div class="card-topo-left">
-                                <input type="checkbox" 
-                                       class="checkbox-custom-item" 
-                                       checked="@itensSelecionadosIds.Contains(item.Id)" 
-                                       @onchange="(e) => ToggleItemSelecionado(item.Id, (bool)(e.Value ?? false))" />
-                                <span class="loja-chip">@(item.Loja?.Nome ?? "Loja")</span>
-                            </div>
-                            @if (item.EstaVencido)
-                            {
-                                <span class="status-chip chip-vencido">🚨 VENCIDO</span>
-                            }
-                            else if (item.DiasRestantes == 0)
-                            {
-                                <span class="status-chip chip-hoje">⚠️ VENCE HOJE</span>
-                            }
-                            else if (item.DiasRestantes <= 7)
-                            {
-                                <span class="status-chip chip-atencao">⏳ @item.DiasRestantes dias restantes</span>
-                            }
-                            else
-                            {
-                                <span class="status-chip chip-ok">@item.DiasRestantes dias</span>
-                            }
-                        </div>
-
-                        <h3 class="card-prod-nome">
-                            @if (item.EstaVencido)
-                            {
-                                <span style="color: #dc2626;">🚨 </span>
-                            }
-                            else if (item.DiasRestantes <= 7)
-                            {
-                                <span style="color: #d97706;">⚠️ </span>
-                            }
-                            @(item.Produto?.Nome ?? "-")
-                        </h3>
-                        <span class="card-barcode">Código: @(item.Produto?.CodigoBarras ?? "-")</span>
-
-                        <div class="card-datas-grid">
-                            <div class="data-bloco">
-                                <span class="data-label">Validade</span>
-                                <span class="data-val @(item.EstaVencido ? "data-vencida" : (item.DiasRestantes <= 7 ? "data-destaque-7dias" : ""))">
-                                    @item.DataValidade.ToString("dd/MM/yyyy")
-                                </span>
-                            </div>
-                            <div class="data-bloco">
-                                <span class="data-label">Coleta</span>
-                                <span class="data-val">@item.DataColeta.ToString("dd/MM/yyyy")</span>
-                            </div>
-                        </div>
-
-                        <div class="card-prazo-aviso @(item.EstaVencido ? "prazo-vencido-destaque" : (item.DiasRestantes <= 7 ? "prazo-7dias-destaque" : ""))">
-                            @item.MensagemPrazo
-                        </div>
-
-                        <div class="card-rodape">
-                            <div class="card-promocao-row">
-                                <label class="switch-promocao">
+                <div class="cards-responsive-grid">
+                    @foreach (var item in ItensPaginados)
+                    {
+                        <div class="mobile-item-card @(itensSelecionadosIds.Contains(item.Id) ? "card-selected" : "") @(item.EstaVencido ? "card-alerta-vencido" : (item.DiasRestantes <= 7 ? "card-destaque-7dias" : ""))">
+                            <div class="card-topo">
+                                <div class="card-topo-left">
                                     <input type="checkbox" 
-                                           checked="@item.EmPromocao" 
-                                           @onchange="(e) => TogglePromocao(item, (bool)e.Value!)" />
-                                    <span class="switch-label">Item em Promoção</span>
-                                </label>
+                                           class="checkbox-custom-item" 
+                                           checked="@itensSelecionadosIds.Contains(item.Id)" 
+                                           @onchange="(e) => ToggleItemSelecionado(item.Id, (bool)(e.Value ?? false))" />
+                                    <span class="loja-chip">@(item.Loja?.Nome ?? "Loja")</span>
+                                </div>
+                                @if (item.EstaVencido)
+                                {
+                                    <span class="status-chip chip-vencido">🚨 VENCIDO</span>
+                                }
+                                else if (item.DiasRestantes == 0)
+                                {
+                                    <span class="status-chip chip-hoje">⚠️ VENCE HOJE</span>
+                                }
+                                else if (item.DiasRestantes <= 7)
+                                {
+                                    <span class="status-chip chip-atencao">⏳ @item.DiasRestantes dias restantes</span>
+                                }
+                                else
+                                {
+                                    <span class="status-chip chip-ok">@item.DiasRestantes dias</span>
+                                }
                             </div>
 
-                            <div class="card-acoes-grid">
-                                <button type="button" class="btn-whatsapp-card btn-mobile-acao" @onclick="() => CompartilharItemIndividual(item)" title="Enviar via WhatsApp">
-                                    💬 WhatsApp
-                                </button>
-                                <button type="button" class="btn-copiar-loja btn-mobile-acao" @onclick="() => AbrirModalCopiar(item)">
-                                    📋 Replicar
-                                </button>
-                                <button type="button" class="btn-dar-baixa btn-mobile-acao" @onclick="() => AbrirModalBaixa(item)">
-                                    Dar Baixa
-                                </button>
+                            <h3 class="card-prod-nome">
+                                @if (item.EstaVencido)
+                                {
+                                    <span style="color: #dc2626;">🚨 </span>
+                                }
+                                else if (item.DiasRestantes <= 7)
+                                {
+                                    <span style="color: #d97706;">⚠️ </span>
+                                }
+                                @(item.Produto?.Nome ?? "-")
+                            </h3>
+                            <span class="card-barcode">Código: @(item.Produto?.CodigoBarras ?? "-")</span>
+
+                            <div class="card-datas-grid">
+                                <div class="data-bloco">
+                                    <span class="data-label">Validade</span>
+                                    <span class="data-val @(item.EstaVencido ? "data-vencida" : (item.DiasRestantes <= 7 ? "data-destaque-7dias" : ""))">
+                                        @item.DataValidade.ToString("dd/MM/yyyy")
+                                    </span>
+                                </div>
+                                <div class="data-bloco">
+                                    <span class="data-label">Coleta</span>
+                                    <span class="data-val">@item.DataColeta.ToString("dd/MM/yyyy")</span>
+                                </div>
+                            </div>
+
+                            <div class="card-prazo-aviso @(item.EstaVencido ? "prazo-vencido-destaque" : (item.DiasRestantes <= 7 ? "prazo-7dias-destaque" : ""))">
+                                @item.MensagemPrazo
+                            </div>
+
+                            <div class="card-rodape">
+                                <div class="card-promocao-row">
+                                    <label class="switch-promocao">
+                                        <input type="checkbox" 
+                                               checked="@item.EmPromocao" 
+                                               @onchange="(e) => TogglePromocao(item, (bool)(e.Value ?? false))" />
+                                        <span class="switch-label">Item em Promoção</span>
+                                    </label>
+                                </div>
+
+                                <div class="card-acoes-grid">
+                                    <button type="button" class="btn-whatsapp-card btn-mobile-acao" @onclick="() => CompartilharItemIndividual(item)" title="Enviar via WhatsApp">
+                                        💬 WhatsApp
+                                    </button>
+                                    <button type="button" class="btn-copiar-loja btn-mobile-acao" @onclick="() => AbrirModalCopiar(item)">
+                                        📋 Replicar
+                                    </button>
+                                    <button type="button" class="btn-dar-baixa btn-mobile-acao" @onclick="() => AbrirModalBaixa(item)">
+                                        Dar Baixa
+                                    </button>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                }
+                    }
+                </div>
             </div>
 
             <!-- Barra de Navegação de Paginação -->
@@ -512,6 +531,14 @@
     private HashSet<int> itensSelecionadosIds = new();
     private bool exibirModalWhatsApp = false;
     private List<RegistroValidade> itensParaCompartilhar = new();
+
+    // Modo de Visualização (Tabela vs Cartões)
+    private string modoVisualizacao = "tabela";
+
+    private void SetModoVisualizacao(string modo)
+    {
+        modoVisualizacao = modo;
+    }
 
     // Paginação e Busca Instantânea
     private int paginaAtual = 1;

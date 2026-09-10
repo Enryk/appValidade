@@ -35,16 +35,26 @@
     }
 
     .sidebar-wrapper {
-        width: 260px;
-        min-width: 260px;
-        max-width: 260px;
-        flex-shrink: 0; /* Garante que a barra lateral nunca seja esmagada */
+        width: 250px;
+        min-width: 250px;
+        max-width: 250px;
+        flex-shrink: 0;
         height: 100vh;
         overflow-y: auto;
+        overflow-x: hidden;
         border-right: 1px solid #1e293b;
+        transition: width 0.22s cubic-bezier(0.16, 1, 0.3, 1), min-width 0.22s cubic-bezier(0.16, 1, 0.3, 1), max-width 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .app-layout.sidebar-collapsed .sidebar-wrapper {
+        width: 70px;
+        min-width: 70px;
+        max-width: 70px;
     }
 
     .main-content-wrapper {
+        flex: 1;
+        min-width: 0;
         height: 100vh;
         overflow-y: auto;
         overflow-x: hidden;

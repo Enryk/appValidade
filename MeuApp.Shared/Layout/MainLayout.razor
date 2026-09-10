@@ -1,9 +1,9 @@
 @inherits LayoutComponentBase
 @namespace MeuApp.Shared.Layout
 
-<div class="app-layout">
+<div class="app-layout @(sidebarRecolhida ? "sidebar-collapsed" : "")">
     <aside class="sidebar-wrapper">
-        <NavMenu />
+        <NavMenu IsDesktopCollapsed="sidebarRecolhida" OnToggleDesktop="ToggleSidebar" />
     </aside>
 
     <main class="main-content-wrapper">
@@ -34,6 +34,12 @@
 
 @code {
     private ErrorBoundary? errorBoundary;
+    private bool sidebarRecolhida = false;
+
+    private void ToggleSidebar(bool recolhida)
+    {
+        sidebarRecolhida = recolhida;
+    }
 
     private void RecuperarErro()
     {
