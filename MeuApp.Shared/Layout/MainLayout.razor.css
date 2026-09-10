@@ -61,6 +61,15 @@
     }
 }
 
+/* Auto-recolhimento do menu em telas intermediárias para evitar corte de dados na tabela */
+@media (min-width: 768px) and (max-width: 1180px) {
+    .sidebar-wrapper {
+        width: 70px !important;
+        min-width: 70px !important;
+        max-width: 70px !important;
+    }
+}
+
 /* Fallback Seguro de Erro (ErrorBoundary) */
 .error-boundary-box {
     display: flex;

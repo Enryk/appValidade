@@ -229,7 +229,9 @@
                                            @onchange="(e) => ToggleItemSelecionado(item.Id, (bool)(e.Value ?? false))" />
                                 </td>
                                 <td class="col-td-loja">
-                                    <span class="loja-chip">@(item.Loja?.Nome ?? "Loja")</span>
+                                    <span class="loja-chip" title="@(item.Loja?.Nome ?? "Loja")">
+                                        @ObterNomeLojaReduzido(item.Loja?.Nome)
+                                    </span>
                                 </td>
                                 <td class="col-td-codigo">
                                     <code class="codigo-barras-cell">@(item.Produto?.CodigoBarras ?? "-")</code>
@@ -302,14 +304,15 @@
                                     <div class="table-acoes-group">
                                         <button type="button" 
                                                 class="btn-whatsapp-mini" 
-                                                title="Enviar este produto via WhatsApp"
+                                                title="Compartilhar via WhatsApp"
                                                 @onclick="() => CompartilharItemIndividual(item)">
                                             💬
                                         </button>
                                         <button type="button" 
-                                                class="btn-dar-baixa" 
+                                                class="btn-editar-mini" 
+                                                title="Dar Baixa / Editar lote"
                                                 @onclick="() => AbrirModalBaixa(item)">
-                                            Dar Baixa
+                                            ✏️
                                         </button>
                                     </div>
                                 </td>
@@ -528,6 +531,20 @@
     private void SetModoVisualizacao(string modo)
     {
         modoVisualizacao = modo;
+    }
+
+    private string ObterNomeLojaReduzido(string? nome)
+    {
+        if (string.IsNullOrWhiteSpace(nome)) return "Loja";
+        var limpo = nome.Trim();
+        if (limpo.StartsWith("Loja ", StringComparison.OrdinalIgnoreCase) && limpo.Length > 5)
+        {
+            var semPrefixo = limpo.Substring(5).Trim();
+            if (int.TryParse(semPrefixo, out _))
+                return $"Lj. {semPrefixo}";
+            return semPrefixo;
+        }
+        return limpo;
     }
 
     // Paginação e Busca Instantânea

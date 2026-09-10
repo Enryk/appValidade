@@ -266,3 +266,58 @@
     justify-content: center;
     padding: 4px 0;
 }
+
+/* Estado Recolhido Automático em Telas Intermediárias para não cortar dados */
+@media (min-width: 768px) and (max-width: 1180px) {
+    .nav-container .brand-text,
+    .nav-container .nav-section-title,
+    .nav-container .nav-menu-list ::deep .nav-text,
+    .nav-container .status-text {
+        display: none !important;
+    }
+
+    .nav-container .nav-brand-header {
+        padding: 14px 6px;
+        justify-content: center;
+        position: relative;
+    }
+
+    .nav-container .brand-logo-area {
+        gap: 0;
+    }
+
+    .nav-container .brand-icon {
+        width: 38px;
+        height: 38px;
+        font-size: 1.35rem;
+    }
+
+    .nav-container .btn-toggle-desktop {
+        position: absolute;
+        top: 6px;
+        right: 2px;
+        width: 18px;
+        height: 18px;
+        font-size: 0.65rem;
+        padding: 0;
+    }
+
+    .nav-container .nav-menu-wrapper {
+        padding: 12px 6px;
+    }
+
+    .nav-container .nav-menu-list ::deep .nav-custom-link {
+        justify-content: center !important;
+        padding: 10px 0 !important;
+        gap: 0 !important;
+    }
+
+    .nav-container .nav-menu-list ::deep .nav-icon {
+        font-size: 1.35rem !important;
+    }
+
+    .nav-container .status-indicator {
+        justify-content: center;
+        padding: 4px 0;
+    }
+}
