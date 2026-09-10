@@ -15,6 +15,7 @@
     <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="10.0.8" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.8" />
     <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" Version="2.1.13" />
+    <PackageReference Include="MiniExcel" Version="1.46.0" />
   </ItemGroup>
 
 </Project>

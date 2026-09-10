@@ -1,0 +1,338 @@
+@page "/importar"
+@namespace MeuApp.Shared.Pages
+@inject IValidadeService ValidadeService
+@inject NavigationManager NavigationManager
+
+<div class="importar-page">
+    <header class="page-header">
+        <div class="header-titles">
+            <h1 class="page-title">Importar Planilha de Validades</h1>
+            <p class="page-subtitle">Carregue arquivos .xlsx (Excel) ou .csv exportados de outros sistemas</p>
+        </div>
+    </header>
+
+    @if (!string.IsNullOrEmpty(feedbackSucesso))
+    {
+        <div class="alert-banner alert-success">
+            <div class="alert-content">
+                <span class="alert-icon">🎉</span>
+                <div>
+                    <strong>Importação Concluída com Sucesso!</strong>
+                    <p>@feedbackSucesso</p>
+                </div>
+            </div>
+            <div class="alert-actions">
+                <a href="" class="btn-ver-monitoramento">Ver no Monitoramento</a>
+                <button type="button" class="btn-nova-importacao" @onclick="ReiniciarImportacao">Importar Outro Arquivo</button>
+            </div>
+        </div>
+    }
+
+    @if (!string.IsNullOrEmpty(feedbackErro))
+    {
+        <div class="alert-banner alert-danger">
+            <span class="alert-icon">⚠️</span>
+            <span>@feedbackErro</span>
+            <button type="button" class="btn-fechar-alerta" @onclick="() => feedbackErro = string.Empty">×</button>
+        </div>
+    }
+
+    @* Painel de Configurações de Destino *@
+    <div class="config-card">
+        <div class="config-grid">
+            <div class="config-item">
+                <label class="config-label">Loja de Destino dos Lotes:</label>
+                <select class="select-loja-custom" @bind="lojaDestinoId" @bind:after="OnLojaDestinoAlterada">
+                    @foreach (var loja in lojas)
+                    {
+                        <option value="@loja.Id">@loja.Nome (@loja.CodigoLoja)</option>
+                    }
+                </select>
+                <span class="config-help">Todos os lotes da planilha serão vinculados a esta loja.</span>
+            </div>
+
+            <div class="config-item">
+                <label class="config-label">Data de Coleta Fixada:</label>
+                <div class="data-fixada-badge">
+                    <span class="data-icon">📅</span>
+                    <strong>Hoje (@DateTime.Today.ToString("dd/MM/yyyy"))</strong>
+                </div>
+                <span class="config-help">Os registros serão gravados com a coleta registrada no dia de hoje.</span>
+            </div>
+        </div>
+    </div>
+
+    @* Área de Upload de Arquivo *@
+    <div class="upload-section">
+        <label class="upload-dropzone @(processandoArquivo ? "uploading" : "")">
+            <InputFile OnChange="OnArquivoSelecionado" accept=".xlsx,.csv" class="input-file-hidden" disabled="@processandoArquivo" />
+            <span class="upload-icon">📂</span>
+            <div class="upload-text">
+                @if (processandoArquivo)
+                {
+                    <strong>Processando e lendo planilha...</strong>
+                    <span class="upload-sub">Aguarde enquanto os dados são analisados</span>
+                }
+                else if (!string.IsNullOrEmpty(nomeArquivoCarregado))
+                {
+                    <strong class="file-loaded-name">📄 @nomeArquivoCarregado</strong>
+                    <span class="upload-sub">Clique para escolher outro arquivo se desejar</span>
+                }
+                else
+                {
+                    <strong>Clique aqui para selecionar o arquivo Excel (.xlsx) ou .csv</strong>
+                    <span class="upload-sub">Formatos aceitos: Microsoft Excel (.xlsx) ou CSV delimitado</span>
+                }
+            </div>
+        </label>
+    </div>
+
+    @* Painel de Pré-visualização dos Dados *@
+    @if (itensLidos.Any())
+    {
+        <div class="preview-card">
+            <div class="preview-header">
+                <div class="preview-titles">
+                    <h2 class="preview-title">Prévia da Importação</h2>
+                    <span class="preview-subtitle">Conferência dos itens detectados antes da gravação no banco</span>
+                </div>
+
+                <button type="button" 
+                        class="btn-confirmar-importacao" 
+                        disabled="@(salvandoNoBanco || TotalItensValidos == 0)"
+                        @onclick="ConfirmarImportacao">
+                    @if (salvandoNoBanco)
+                    {
+                        <span>Gravando dados no banco...</span>
+                    }
+                    else
+                    {
+                        <span>Confirmar Importação (@TotalItensValidos itens válidos)</span>
+                    }
+                </button>
+            </div>
+
+            @* Métricas da Leitura *@
+            <div class="metrics-grid">
+                <div class="metric-box">
+                    <span class="metric-num">@itensLidos.Count</span>
+                    <span class="metric-label">Linhas Lidas</span>
+                </div>
+                <div class="metric-box metric-success">
+                    <span class="metric-num">@TotalItensValidos</span>
+                    <span class="metric-label">Válidos para Gravar</span>
+                </div>
+                <div class="metric-box metric-info">
+                    <span class="metric-num">@TotalProdutosNovos</span>
+                    <span class="metric-label">Produtos Novos</span>
+                </div>
+                <div class="metric-box metric-warning">
+                    <span class="metric-num">@TotalJaCadastradosNaLoja</span>
+                    <span class="metric-label">Já Existentes na Loja</span>
+                </div>
+                @if (TotalInvalidos > 0)
+                {
+                    <div class="metric-box metric-danger">
+                        <span class="metric-num">@TotalInvalidos</span>
+                        <span class="metric-label">Inválidos / Ignorados</span>
+                    </div>
+                }
+            </div>
+
+            @* Tabela com as Linhas da Planilha *@
+            <div class="table-container">
+                <table class="tabela-previa">
+                    <thead>
+                        <tr>
+                            <th>Linha</th>
+                            <th>Código</th>
+                            <th>Nome do Produto</th>
+                            <th>Validade</th>
+                            <th>Situação</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in itensLidos.Take(50))
+                        {
+                            <tr class="@(!item.Valido ? "row-invalido" : (item.ValidadeJaExisteNaLoja ? "row-repetido" : ""))">
+                                <td>@item.Linha</td>
+                                <td><code>@item.CodigoBarras</code></td>
+                                <td>
+                                    <strong>@item.NomeProduto</strong>
+                                </td>
+                                <td>
+                                    @if (item.DataValidade.HasValue)
+                                    {
+                                        <span class="data-val-chip">@item.DataValidade.Value.ToString("dd/MM/yyyy")</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="chip-erro">Data Inválida</span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (!item.Valido)
+                                    {
+                                        <span class="status-badge badge-erro">@item.MotivoInvalido</span>
+                                    }
+                                    else if (item.ValidadeJaExisteNaLoja)
+                                    {
+                                        <span class="status-badge badge-alerta">Validade já ativa nesta loja</span>
+                                    }
+                                    else if (item.ProdutoExiste)
+                                    {
+                                        <span class="status-badge badge-ok">Produto no Catálogo</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="status-badge badge-novo">Novo Produto</span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+                @if (itensLidos.Count > 50)
+                {
+                    <div class="preview-footer-notice">
+                        <span>Exibindo os primeiros 50 itens de @itensLidos.Count linhas encontradas. Todos os itens válidos serão gravados ao confirmar.</span>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private List<Loja> lojas = new();
+    private int lojaDestinoId;
+
+    private bool processandoArquivo = false;
+    private bool salvandoNoBanco = false;
+    private string nomeArquivoCarregado = string.Empty;
+
+    private List<ItemImportacaoPlanilha> itensLidos = new();
+
+    private string feedbackSucesso = string.Empty;
+    private string feedbackErro = string.Empty;
+
+    private int TotalItensValidos => itensLidos.Count(i => i.Valido);
+    private int TotalProdutosNovos => itensLidos.Count(i => i.Valido && !i.ProdutoExiste);
+    private int TotalJaCadastradosNaLoja => itensLidos.Count(i => i.Valido && i.ValidadeJaExisteNaLoja);
+    private int TotalInvalidos => itensLidos.Count(i => !i.Valido);
+
+    protected override async Task OnInitializedAsync()
+    {
+        await ValidadeService.InicializarBancoESeedAsync();
+        lojas = await ValidadeService.GetLojasAsync();
+
+        // Conforme solicitado pelo usuário, pré-seleciona a Loja 2
+        var loja2 = lojas.FirstOrDefault(l => l.Id == 2 || l.CodigoLoja == "02" || l.CodigoLoja == "LJ-02" || l.Nome.Contains("2") || l.Nome.Contains("Zona Sul"));
+        if (loja2 != null)
+        {
+            lojaDestinoId = loja2.Id;
+        }
+        else if (lojas.Any())
+        {
+            lojaDestinoId = lojas.First().Id;
+        }
+    }
+
+    private async Task OnLojaDestinoAlterada()
+    {
+        if (itensLidos.Any())
+        {
+            // Atualiza indicação de validades já existentes na nova loja selecionada
+            await AtualizarStatusValidadesJaExistentes();
+        }
+    }
+
+    private async Task AtualizarStatusValidadesJaExistentes()
+    {
+        var validades = await ValidadeService.GetValidadesAtivasAsync(lojaDestinoId, "todos");
+        foreach (var item in itensLidos.Where(i => i.Valido && i.DataValidade.HasValue))
+        {
+            item.ValidadeJaExisteNaLoja = validades.Any(v => 
+                v.Produto?.CodigoBarras == item.CodigoBarras && 
+                v.DataValidade.Date == item.DataValidade!.Value.Date);
+        }
+    }
+
+    private async Task OnArquivoSelecionado(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+        if (file == null) return;
+
+        feedbackErro = string.Empty;
+        feedbackSucesso = string.Empty;
+        processandoArquivo = true;
+        nomeArquivoCarregado = file.Name;
+
+        try
+        {
+            // Limite de até 15MB para planilhas grandes
+            using var stream = file.OpenReadStream(maxAllowedSize: 15 * 1024 * 1024);
+            itensLidos = await ValidadeService.ProcessarPreviaPlanilhaAsync(stream, file.Name, lojaDestinoId);
+
+            if (!itensLidos.Any())
+            {
+                feedbackErro = "Nenhum produto ou código de barras foi encontrado no arquivo. Verifique se o formato das colunas está correto.";
+            }
+        }
+        catch (Exception ex)
+        {
+            feedbackErro = $"Erro ao ler a planilha: {ex.Message}";
+            itensLidos.Clear();
+        }
+        finally
+        {
+            processandoArquivo = false;
+        }
+    }
+
+    private async Task ConfirmarImportacao()
+    {
+        if (!itensLidos.Any(i => i.Valido))
+        {
+            feedbackErro = "Não há itens válidos para importar.";
+            return;
+        }
+
+        salvandoNoBanco = true;
+        feedbackErro = string.Empty;
+
+        try
+        {
+            var res = await ValidadeService.ExecutarImportacaoAsync(lojaDestinoId, itensLidos);
+
+            if (res.Sucesso)
+            {
+                var lojaNome = lojas.FirstOrDefault(l => l.Id == lojaDestinoId)?.Nome ?? "Loja";
+                feedbackSucesso = $"{res.ValidadesInseridas} validade(s) adicionadas com sucesso na {lojaNome} (Data de Coleta: Hoje). " +
+                                  $"{res.ProdutosCadastrados} novo(s) produto(s) adicionados ao catálogo geral.";
+                itensLidos.Clear();
+                nomeArquivoCarregado = string.Empty;
+            }
+            else
+            {
+                feedbackErro = res.Mensagem;
+            }
+        }
+        catch (Exception ex)
+        {
+            feedbackErro = $"Erro ao salvar importação no banco de dados: {ex.Message}";
+        }
+        finally
+        {
+            salvandoNoBanco = false;
+        }
+    }
+
+    private void ReiniciarImportacao()
+    {
+        itensLidos.Clear();
+        nomeArquivoCarregado = string.Empty;
+        feedbackSucesso = string.Empty;
+        feedbackErro = string.Empty;
+    }
+}

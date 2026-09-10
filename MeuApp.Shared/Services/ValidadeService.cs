@@ -1,5 +1,7 @@
 using System.Text;
+using System.Globalization;
 using Microsoft.EntityFrameworkCore;
+using MiniExcelLibs;
 using MeuApp.Shared.Data;
 using MeuApp.Shared.Models;
 
@@ -545,5 +547,335 @@ public class ValidadeService : IValidadeService
             tratado = "'" + tratado;
         }
         return tratado;
+    }
+
+    public async Task<List<ItemImportacaoPlanilha>> ProcessarPreviaPlanilhaAsync(Stream stream, string nomeArquivo, int lojaDestinoId)
+    {
+        using var ms = new MemoryStream();
+        await stream.CopyToAsync(ms);
+        ms.Position = 0;
+
+        var ext = Path.GetExtension(nomeArquivo)?.ToLowerInvariant();
+        var rows = new List<IDictionary<string, object>>();
+
+        if (ext == ".csv")
+        {
+            ms.Position = 0;
+            var buffer = ms.ToArray();
+            string conteudo;
+            try
+            {
+                var utf8Strict = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true);
+                conteudo = utf8Strict.GetString(buffer);
+            }
+            catch (DecoderFallbackException)
+            {
+                conteudo = Encoding.Latin1.GetString(buffer);
+            }
+
+            using var reader = new StringReader(conteudo);
+            var headerLine = await reader.ReadLineAsync();
+            if (headerLine != null)
+            {
+                headerLine = headerLine.TrimStart('\uFEFF');
+                char sep = headerLine.Contains(';') ? ';' : ',';
+                var headers = headerLine.Split(sep).Select(h => h.Trim(' ', '"', '\r', '\n')).ToArray();
+                string? line;
+                while ((line = await reader.ReadLineAsync()) != null)
+                {
+                    if (string.IsNullOrWhiteSpace(line)) continue;
+                    var parts = line.Split(sep).Select(p => p.Trim(' ', '"', '\r', '\n')).ToArray();
+                    var dict = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+                    for (int i = 0; i < headers.Length && i < parts.Length; i++)
+                    {
+                        dict[headers[i]] = parts[i];
+                    }
+                    rows.Add(dict);
+                }
+            }
+        }
+        else
+        {
+            // Arquivo Excel (.xlsx)
+            ms.Position = 0;
+            try
+            {
+                rows = ms.Query(useHeaderRow: true, excelType: ExcelType.XLSX)
+                    .Cast<IDictionary<string, object>>()
+                    .ToList();
+            }
+            catch
+            {
+                ms.Position = 0;
+                rows = ms.Query(useHeaderRow: true)
+                    .Cast<IDictionary<string, object>>()
+                    .ToList();
+            }
+        }
+
+        var itens = new List<ItemImportacaoPlanilha>();
+        int linhaIndex = 2;
+
+        await using var context = await _contextFactory.CreateDbContextAsync();
+        var produtosExistentes = await context.Produtos
+            .Select(p => new { p.Id, p.CodigoBarras })
+            .ToDictionaryAsync(p => p.CodigoBarras, p => p.Id);
+
+        var validadesExistentes = await context.RegistrosValidade
+            .Where(v => v.LojaId == lojaDestinoId && v.Status == "Ativo")
+            .Select(v => new { v.ProdutoId, v.DataValidade })
+            .ToListAsync();
+
+        foreach (IDictionary<string, object> row in rows)
+        {
+            string? nome = null;
+            string? codigo = null;
+            DateTime? validade = null;
+            string? lojaOrigem = null;
+            string? statusOrigem = null;
+
+            foreach (var kvp in row)
+            {
+                var keyNorm = NormalizarChave(CorrigirEncodingSeNecessario(kvp.Key));
+                var valStr = kvp.Value?.ToString()?.Trim();
+                if (string.IsNullOrWhiteSpace(valStr)) continue;
+
+                if (nome == null && (keyNorm.Contains("nome") || keyNorm.Contains("produto") || keyNorm.Contains("descricao")))
+                {
+                    nome = CorrigirEncodingSeNecessario(valStr);
+                }
+                else if (codigo == null && (keyNorm.Contains("cod") || keyNorm.Contains("ean") || keyNorm.Contains("barr") || (keyNorm.StartsWith("c") && keyNorm.Contains("d"))))
+                {
+                    codigo = valStr;
+                }
+                else if (validade == null && (keyNorm.Contains("venc") || keyNorm.Contains("validade") || keyNorm.Contains("data")))
+                {
+                    validade = ConverterData(kvp.Value);
+                }
+                else if (lojaOrigem == null && keyNorm.Contains("loja"))
+                {
+                    lojaOrigem = valStr;
+                }
+                else if (statusOrigem == null && keyNorm.Contains("status"))
+                {
+                    statusOrigem = valStr;
+                }
+            }
+
+            if (!string.IsNullOrWhiteSpace(codigo) || !string.IsNullOrWhiteSpace(nome))
+            {
+                var item = new ItemImportacaoPlanilha
+                {
+                    Linha = linhaIndex,
+                    CodigoBarras = codigo ?? string.Empty,
+                    NomeProduto = nome ?? string.Empty,
+                    DataValidade = validade,
+                    LojaOriginal = lojaOrigem,
+                    StatusOriginal = statusOrigem
+                };
+
+                if (string.IsNullOrWhiteSpace(item.CodigoBarras))
+                {
+                    item.Valido = false;
+                    item.MotivoInvalido = "Código de barras ausente";
+                }
+                else if (string.IsNullOrWhiteSpace(item.NomeProduto))
+                {
+                    item.Valido = false;
+                    item.MotivoInvalido = "Nome do produto ausente";
+                }
+                else if (!item.DataValidade.HasValue)
+                {
+                    item.Valido = false;
+                    item.MotivoInvalido = "Data de validade inválida ou ausente";
+                }
+                else
+                {
+                    item.Valido = true;
+                    if (produtosExistentes.TryGetValue(item.CodigoBarras, out var prodId))
+                    {
+                        item.ProdutoExiste = true;
+                        item.ValidadeJaExisteNaLoja = validadesExistentes.Any(v => v.ProdutoId == prodId && v.DataValidade.Date == item.DataValidade.Value.Date);
+                    }
+                }
+
+                itens.Add(item);
+            }
+
+            linhaIndex++;
+        }
+
+        return itens;
+    }
+
+    public async Task<ResultadoImportacao> ExecutarImportacaoAsync(int lojaDestinoId, List<ItemImportacaoPlanilha> itens)
+    {
+        var resultado = new ResultadoImportacao
+        {
+            TotalLidos = itens.Count
+        };
+
+        var itensValidos = itens.Where(i => i.Valido && i.DataValidade.HasValue).ToList();
+        if (!itensValidos.Any())
+        {
+            resultado.Sucesso = false;
+            resultado.Mensagem = "Nenhum item válido para importar.";
+            return resultado;
+        }
+
+        await using var context = await _contextFactory.CreateDbContextAsync();
+
+        // Identifica e cria produtos no catálogo compartilhado
+        var codigos = itensValidos.Select(i => i.CodigoBarras).Distinct().ToList();
+        var produtosNoBanco = await context.Produtos
+            .Where(p => codigos.Contains(p.CodigoBarras))
+            .ToDictionaryAsync(p => p.CodigoBarras, p => p);
+
+        var hoje = DateTime.Today;
+
+        foreach (var item in itensValidos)
+        {
+            if (!produtosNoBanco.TryGetValue(item.CodigoBarras, out var produto))
+            {
+                produto = new Produto
+                {
+                    CodigoBarras = item.CodigoBarras.Trim(),
+                    Nome = item.NomeProduto.Trim()
+                };
+                context.Produtos.Add(produto);
+                produtosNoBanco[item.CodigoBarras] = produto;
+                resultado.ProdutosCadastrados++;
+            }
+            else
+            {
+                // Se o nome no banco estiver muito curto e a planilha trouxer um nome melhor
+                if (!string.IsNullOrWhiteSpace(item.NomeProduto) && item.NomeProduto.Trim().Length > produto.Nome.Length)
+                {
+                    produto.Nome = item.NomeProduto.Trim();
+                    resultado.ProdutosAtualizados++;
+                }
+            }
+        }
+
+        await context.SaveChangesAsync();
+
+        // Carrega validades existentes na loja de destino para evitar duplicatas ativas com mesma data
+        var produtosIds = produtosNoBanco.Values.Select(p => p.Id).ToList();
+        var validadesExistentes = await context.RegistrosValidade
+            .Where(v => v.LojaId == lojaDestinoId && produtosIds.Contains(v.ProdutoId) && v.Status == "Ativo")
+            .Select(v => new { v.ProdutoId, v.DataValidade })
+            .ToListAsync();
+
+        var validadesJaAdicionadas = new HashSet<(int ProdutoId, DateTime DataValidade)>(
+            validadesExistentes.Select(v => (v.ProdutoId, v.DataValidade.Date))
+        );
+
+        foreach (var item in itensValidos)
+        {
+            var produto = produtosNoBanco[item.CodigoBarras];
+            var dataVal = item.DataValidade!.Value.Date;
+
+            if (validadesJaAdicionadas.Contains((produto.Id, dataVal)))
+            {
+                resultado.ValidadesIgnoradasDuplicadas++;
+                continue;
+            }
+
+            context.RegistrosValidade.Add(new RegistroValidade
+            {
+                ProdutoId = produto.Id,
+                LojaId = lojaDestinoId,
+                DataColeta = hoje, // Fixada com a data de hoje!
+                DataValidade = dataVal,
+                EmPromocao = false,
+                Status = "Ativo"
+            });
+
+            validadesJaAdicionadas.Add((produto.Id, dataVal));
+            resultado.ValidadesInseridas++;
+        }
+
+        await context.SaveChangesAsync();
+
+        resultado.LinhasInvalidas = itens.Count(i => !i.Valido);
+        resultado.Sucesso = true;
+        resultado.Mensagem = $"Importação realizada com sucesso! {resultado.ValidadesInseridas} validade(s) inserida(s) e {resultado.ProdutosCadastrados} novo(s) produto(s) cadastrado(s).";
+
+        return resultado;
+    }
+
+    private static DateTime? ConverterData(object? valor)
+    {
+        if (valor == null) return null;
+        if (valor is DateTime dt) return dt.Date;
+        if (valor is double d)
+        {
+            try { return DateTime.FromOADate(d).Date; } catch { }
+        }
+        var str = valor.ToString()?.Trim();
+        if (string.IsNullOrWhiteSpace(str)) return null;
+
+        string[] formatos = { "dd/MM/yyyy", "d/M/yyyy", "dd/MM/yy", "d/M/yy", "yyyy-MM-dd", "yyyy/MM/dd", "dd-MM-yyyy" };
+        if (DateTime.TryParseExact(str, formatos, CultureInfo.InvariantCulture, DateTimeStyles.None, out var resExact))
+        {
+            return resExact.Date;
+        }
+        if (DateTime.TryParse(str, new CultureInfo("pt-BR"), DateTimeStyles.None, out var resPtBr))
+        {
+            return resPtBr.Date;
+        }
+        return null;
+    }
+
+    private static readonly Encoding Win1252Encoding = ObterWindows1252();
+
+    private static Encoding ObterWindows1252()
+    {
+        try
+        {
+            Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+            return Encoding.GetEncoding(1252);
+        }
+        catch
+        {
+            return Encoding.Latin1;
+        }
+    }
+
+    private static string CorrigirEncodingSeNecessario(string? texto)
+    {
+        if (string.IsNullOrWhiteSpace(texto)) return string.Empty;
+        if (texto.Contains('Ã') || texto.Contains('Â') || texto.Contains('â'))
+        {
+            try
+            {
+                var bytes = Win1252Encoding.GetBytes(texto);
+                var redecoded = Encoding.UTF8.GetString(bytes);
+                if (!redecoded.Contains('\uFFFD'))
+                {
+                    return redecoded;
+                }
+            }
+            catch
+            {
+                // se falhar, mantém original
+            }
+        }
+        return texto;
+    }
+
+    private static string NormalizarChave(string? chave)
+    {
+        if (string.IsNullOrEmpty(chave)) return string.Empty;
+        var norm = chave.ToLowerInvariant().Normalize(NormalizationForm.FormD);
+        var sb = new StringBuilder();
+        foreach (var c in norm)
+        {
+            if (CharUnicodeInfo.GetUnicodeCategory(c) != UnicodeCategory.NonSpacingMark)
+            {
+                sb.Append(c);
+            }
+        }
+        return sb.ToString();
     }
 }

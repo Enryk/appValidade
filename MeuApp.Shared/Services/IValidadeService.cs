@@ -36,4 +36,8 @@ public interface IValidadeService
     Task DesfazerBaixaAsync(int validadeId);
     Task<List<RegistroValidade>> GetHistoricoBaixasAsync(int? lojaId, DateTime? dataInicio = null, DateTime? dataFim = null, string? motivo = null);
     string GerarCsvHistorico(IEnumerable<RegistroValidade> registros);
+
+    // Importação de Planilhas (Excel / CSV)
+    Task<List<ItemImportacaoPlanilha>> ProcessarPreviaPlanilhaAsync(Stream stream, string nomeArquivo, int lojaDestinoId);
+    Task<ResultadoImportacao> ExecutarImportacaoAsync(int lojaDestinoId, List<ItemImportacaoPlanilha> itens);
 }
