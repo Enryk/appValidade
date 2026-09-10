@@ -344,7 +344,9 @@
                                            class="checkbox-custom-item" 
                                            checked="@itensSelecionadosIds.Contains(item.Id)" 
                                            @onchange="(e) => ToggleItemSelecionado(item.Id, (bool)(e.Value ?? false))" />
-                                    <span class="loja-chip">@(item.Loja?.Nome ?? "Loja")</span>
+                                    <span class="loja-chip" title="@(item.Loja?.Nome ?? "Loja")">
+                                        @ObterNomeLojaReduzido(item.Loja?.Nome)
+                                    </span>
                                 </div>
                                 @if (item.EstaVencido)
                                 {
@@ -412,7 +414,7 @@
                                         💬 WhatsApp
                                     </button>
                                     <button type="button" class="btn-dar-baixa btn-mobile-acao" @onclick="() => AbrirModalBaixa(item)">
-                                        Dar Baixa
+                                        ✏️ Dar Baixa
                                     </button>
                                 </div>
                             </div>
