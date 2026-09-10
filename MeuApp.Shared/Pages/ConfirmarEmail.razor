@@ -1,0 +1,247 @@
+@page "/confirmar-email"
+@layout MeuApp.Shared.Layout.AuthLayout
+@inject IAuthService AuthService
+@inject IEmailService EmailService
+@inject NavigationManager Navigation
+
+<div class="auth-card">
+    <div class="auth-header">
+        <div class="auth-brand-badge badge-mail">
+            <span class="auth-brand-icon">📬</span>
+        </div>
+        <h1 class="auth-title">Validação de E-mail</h1>
+        <p class="auth-subtitle">
+            @if (!string.IsNullOrEmpty(email))
+            {
+                <span>Enviamos um código de segurança para <strong>@email</strong></span>
+            }
+            else
+            {
+                <span>Confirme seu e-mail para ativar sua conta</span>
+            }
+        </p>
+    </div>
+
+    @if (!string.IsNullOrEmpty(mensagemErro))
+    {
+        <div class="auth-alert alert-danger">
+            <span>⚠️ @mensagemErro</span>
+        </div>
+    }
+
+    @if (!string.IsNullOrEmpty(mensagemSucesso))
+    {
+        <div class="auth-alert alert-success">
+            <span>🎉 @mensagemSucesso</span>
+            <div class="alert-action">
+                <a href="/login" class="btn-alert-link">Fazer login agora →</a>
+            </div>
+        </div>
+    }
+
+    @if (!validadoComSucesso)
+    {
+        <!-- Painel de Simulação para desenvolvimento / testes imediatos -->
+        @if (ultimoEmailSimulado != null && (string.IsNullOrEmpty(email) || ultimoEmailSimulado.Destinatario.Equals(email, StringComparison.OrdinalIgnoreCase)))
+        {
+            <div class="simulacao-box">
+                <div class="simulacao-header">
+                    <span>💡 Modo Demonstração (Código do E-mail)</span>
+                </div>
+                <p class="simulacao-desc">
+                    Como o app está rodando localmente, capturamos o código enviado para você testar imediatamente:
+                </p>
+                <div class="simulacao-codigo-area">
+                    <span class="simulacao-codigo">@ultimoEmailSimulado.CodigoConfirmacao</span>
+                    <button type="button" class="btn-usar-codigo" @onclick="() => UsarCodigoSimulado(ultimoEmailSimulado.CodigoConfirmacao)">
+                        Preencher Código
+                    </button>
+                </div>
+            </div>
+        }
+
+        <form @onsubmit="ValidarCodigo" class="auth-form">
+            <div class="form-group">
+                <label class="form-label" for="conf-codigo">Código de 6 Dígitos</label>
+                <div class="input-wrapper">
+                    <input id="conf-codigo" 
+                           type="text" 
+                           maxlength="6" 
+                           class="form-control input-codigo-centrado" 
+                           placeholder="000000" 
+                           @bind="codigo" 
+                           required 
+                           autofocus />
+                </div>
+                <span class="field-hint">Digite o código numérico de 6 dígitos que enviamos ao seu e-mail.</span>
+            </div>
+
+            <button type="submit" class="btn-auth-primary" disabled="@carregando">
+                @if (carregando)
+                {
+                    <span class="spinner-sm"></span>
+                    <span>Validando...</span>
+                }
+                else
+                {
+                    <span>Confirmar Minha Conta</span>
+                }
+            </button>
+        </form>
+
+        <div class="reenvio-area">
+            <p class="reenvio-text">Não recebeu o e-mail?</p>
+            <button type="button" 
+                    class="btn-reenviar-link" 
+                    @onclick="ReenviarCodigo" 
+                    disabled="@(carregando || reenvioDesabilitado)">
+                @(reenvioDesabilitado ? $"Aguarde {segundosRestantes}s para reenviar" : "Reenviar código de validação")
+            </button>
+        </div>
+    }
+
+    <div class="auth-footer">
+        <p class="footer-text">
+            Já validou ou deseja trocar de conta? 
+            <a href="/login" class="footer-link">Ir para o Login</a>
+        </p>
+    </div>
+</div>
+
+@code {
+    [SupplyParameterFromQuery]
+    public string? Token { get; set; }
+
+    [SupplyParameterFromQuery]
+    public string? Email { get; set; }
+
+    private string email = "";
+    private string codigo = "";
+    private bool carregando = false;
+    private bool validadoComSucesso = false;
+    private string? mensagemErro;
+    private string? mensagemSucesso;
+    private UltimoEmailEnviado? ultimoEmailSimulado;
+
+    private bool reenvioDesabilitado = false;
+    private int segundosRestantes = 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!string.IsNullOrWhiteSpace(Email))
+            email = Email;
+
+        ultimoEmailSimulado = EmailService.ObterUltimoEmailSimulado();
+
+        // Se a página foi aberta com token de link direto (/confirmar-email?token=xyz)
+        if (!string.IsNullOrWhiteSpace(Token))
+        {
+            carregando = true;
+            var res = await AuthService.ConfirmarEmailAsync(Token);
+            carregando = false;
+            if (res.Sucesso)
+            {
+                validadoComSucesso = true;
+                mensagemSucesso = res.Mensagem;
+            }
+            else
+            {
+                mensagemErro = res.Mensagem;
+            }
+        }
+    }
+
+    private void UsarCodigoSimulado(string cod)
+    {
+        codigo = cod;
+    }
+
+    private async Task ValidarCodigo()
+    {
+        if (string.IsNullOrWhiteSpace(codigo))
+        {
+            mensagemErro = "Por favor, digite o código de validação.";
+            return;
+        }
+
+        mensagemErro = null;
+        mensagemSucesso = null;
+        carregando = true;
+
+        try
+        {
+            var res = await AuthService.ConfirmarEmailAsync(codigo);
+            if (res.Sucesso)
+            {
+                validadoComSucesso = true;
+                mensagemSucesso = res.Mensagem;
+            }
+            else
+            {
+                mensagemErro = res.Mensagem;
+            }
+        }
+        catch (Exception ex)
+        {
+            mensagemErro = "Erro ao validar: " + ex.Message;
+        }
+        finally
+        {
+            carregando = false;
+        }
+    }
+
+    private async Task ReenviarCodigo()
+    {
+        if (string.IsNullOrWhiteSpace(email))
+        {
+            mensagemErro = "Informe o e-mail para solicitar o reenvio.";
+            return;
+        }
+
+        carregando = true;
+        mensagemErro = null;
+
+        try
+        {
+            var res = await AuthService.ReenviarConfirmacaoAsync(email, Navigation.BaseUri);
+            if (res.Sucesso)
+            {
+                mensagemSucesso = "Novo código enviado com sucesso!";
+                ultimoEmailSimulado = EmailService.ObterUltimoEmailSimulado();
+                IniciarContadorReenvio();
+            }
+            else
+            {
+                mensagemErro = res.Mensagem;
+            }
+        }
+        catch (Exception ex)
+        {
+            mensagemErro = "Erro ao reenviar: " + ex.Message;
+        }
+        finally
+        {
+            carregando = false;
+        }
+    }
+
+    private void IniciarContadorReenvio()
+    {
+        reenvioDesabilitado = true;
+        segundosRestantes = 30;
+        var timer = new System.Timers.Timer(1000);
+        timer.Elapsed += (s, e) =>
+        {
+            segundosRestantes--;
+            if (segundosRestantes <= 0)
+            {
+                reenvioDesabilitado = false;
+                timer.Stop();
+                timer.Dispose();
+            }
+            InvokeAsync(StateHasChanged);
+        };
+        timer.Start();
+    }
+}

@@ -143,6 +143,39 @@
     margin-top: auto;
 }
 
+.btn-nav-logout {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    padding: 8px 12px;
+    border-radius: 8px;
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #f87171;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    margin-bottom: 12px;
+    transition: all 0.15s ease;
+    text-align: left;
+}
+
+.btn-nav-logout:hover {
+    background: rgba(239, 68, 68, 0.15);
+    color: #fca5a5;
+    border-color: rgba(239, 68, 68, 0.3);
+}
+
+.nav-container.nav-collapsed .btn-nav-logout {
+    justify-content: center;
+    padding: 8px 0;
+}
+
+.nav-container.nav-collapsed .btn-nav-logout .nav-text {
+    display: none;
+}
+
 .status-indicator {
     display: flex;
     align-items: center;
@@ -319,5 +352,14 @@
     .nav-container .status-indicator {
         justify-content: center;
         padding: 4px 0;
+    }
+
+    .nav-container .btn-nav-logout {
+        justify-content: center;
+        padding: 8px 0;
+    }
+
+    .nav-container .btn-nav-logout .nav-text {
+        display: none !important;
     }
 }

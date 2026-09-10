@@ -12,6 +12,7 @@ public class AppDbContext : DbContext
     public DbSet<Loja> Lojas => Set<Loja>();
     public DbSet<Produto> Produtos => Set<Produto>();
     public DbSet<RegistroValidade> RegistrosValidade => Set<RegistroValidade>();
+    public DbSet<Usuario> Usuarios => Set<Usuario>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -54,6 +55,19 @@ public class AppDbContext : DbContext
                   .WithMany(l => l.Validades)
                   .HasForeignKey(e => e.LojaId)
                   .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<Usuario>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Nome).IsRequired().HasMaxLength(150);
+            entity.Property(e => e.Email).IsRequired().HasMaxLength(180);
+            entity.Property(e => e.SenhaHash).IsRequired();
+            entity.Property(e => e.SenhaSalt).IsRequired();
+
+            entity.HasIndex(e => e.Email).IsUnique();
+            entity.HasIndex(e => e.TokenConfirmacao);
+            entity.HasIndex(e => e.CodigoConfirmacao);
         });
     }
 }

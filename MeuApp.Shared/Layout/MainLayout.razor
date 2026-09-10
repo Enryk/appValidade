@@ -1,40 +1,79 @@
 @inherits LayoutComponentBase
 @namespace MeuApp.Shared.Layout
 
-<div class="app-layout @(sidebarRecolhida ? "sidebar-collapsed" : "")">
-    <aside class="sidebar-wrapper">
-        <NavMenu IsDesktopCollapsed="sidebarRecolhida" OnToggleDesktop="ToggleSidebar" />
-    </aside>
+@if (verificandoAuth)
+{
+    <div class="auth-loading-screen">
+        <div class="auth-loading-spinner"></div>
+        <span>Carregando ValiData...</span>
+    </div>
+}
+else if (autenticado)
+{
+    <div class="app-layout @(sidebarRecolhida ? "sidebar-collapsed" : "")">
+        <aside class="sidebar-wrapper">
+            <NavMenu IsDesktopCollapsed="sidebarRecolhida" OnToggleDesktop="ToggleSidebar" />
+        </aside>
 
-    <main class="main-content-wrapper">
-        <article class="content-body">
-            <ErrorBoundary @ref="errorBoundary">
-                <ChildContent>
-                    @Body
-                </ChildContent>
-                <ErrorContent Context="ex">
-                    @{
-                        Console.Error.WriteLine($"[UI ERROR]: {ex}");
-                    }
-                    <div class="error-boundary-box">
-                        <div class="error-boundary-card">
-                            <span class="error-boundary-icon">🛡️</span>
-                            <h3>Instabilidade Temporária</h3>
-                            <p>Ocorreu uma instabilidade ao carregar esta seção. Os detalhes foram registrados de forma segura.</p>
-                            <button type="button" class="btn-recuperar-erro" @onclick="RecuperarErro">
-                                Recarregar Seção
-                            </button>
+        <main class="main-content-wrapper">
+            <article class="content-body">
+                <ErrorBoundary @ref="errorBoundary">
+                    <ChildContent>
+                        @Body
+                    </ChildContent>
+                    <ErrorContent Context="ex">
+                        @{
+                            Console.Error.WriteLine($"[UI ERROR]: {ex}");
+                        }
+                        <div class="error-boundary-box">
+                            <div class="error-boundary-card">
+                                <span class="error-boundary-icon">🛡️</span>
+                                <h3>Instabilidade Temporária</h3>
+                                <p>Ocorreu uma instabilidade ao carregar esta seção. Os detalhes foram registrados de forma segura.</p>
+                                <button type="button" class="btn-recuperar-erro" @onclick="RecuperarErro">
+                                    Recarregar Seção
+                                </button>
+                            </div>
                         </div>
-                    </div>
-                </ErrorContent>
-            </ErrorBoundary>
-        </article>
-    </main>
-</div>
+                    </ErrorContent>
+                </ErrorBoundary>
+            </article>
+        </main>
+    </div>
+}
 
 @code {
+    [Inject] private IAuthService AuthService { get; set; } = default!;
+    [Inject] private NavigationManager Navigation { get; set; } = default!;
+
     private ErrorBoundary? errorBoundary;
     private bool sidebarRecolhida = false;
+    private bool verificandoAuth = true;
+    private bool autenticado = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await VerificarAutenticacao();
+        AuthService.OnAuthStateChanged += async () => await VerificarAutenticacao();
+    }
+
+    private async Task VerificarAutenticacao()
+    {
+        verificandoAuth = true;
+        var usuario = await AuthService.ObterUsuarioLogadoAsync();
+        if (usuario == null)
+        {
+            autenticado = false;
+            verificandoAuth = false;
+            Navigation.NavigateTo("/login");
+        }
+        else
+        {
+            autenticado = true;
+            verificandoAuth = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
 
     private void ToggleSidebar(bool recolhida)
     {

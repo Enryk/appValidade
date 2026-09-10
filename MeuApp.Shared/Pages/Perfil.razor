@@ -1,0 +1,170 @@
+@page "/perfil"
+@inject IAuthService AuthService
+@inject NavigationManager Navigation
+
+<div class="perfil-page-container">
+    <div class="perfil-header">
+        <h1 class="perfil-title">Meu Cadastro & Perfil</h1>
+        <p class="perfil-subtitle">Consulte e gerencie suas informações de acesso ao ValiData</p>
+    </div>
+
+    @if (carregando)
+    {
+        <div class="perfil-card carregando-box">Carregando dados do cadastro...</div>
+    }
+    else if (usuario == null)
+    {
+        <div class="perfil-card">
+            <p>Nenhuma sessão ativa encontrada.</p>
+            <button type="button" class="btn-primary" @onclick='() => Navigation.NavigateTo("/login")'>Ir para Login</button>
+        </div>
+    }
+    else
+    {
+        <div class="perfil-grid">
+            <!-- Card de Resumo do Usuário -->
+            <div class="perfil-card card-resumo">
+                <div class="perfil-avatar">
+                    @(ObterIniciais(usuario.Nome))
+                </div>
+                <h2 class="resumo-nome">@usuario.Nome</h2>
+                <span class="resumo-email">@usuario.Email</span>
+                
+                <div class="status-tag tag-ativa">
+                    <span>Conta Ativa & Verificada</span>
+                </div>
+
+                <div class="info-lista">
+                    <div class="info-item">
+                        <span class="info-label">Cadastrado em:</span>
+                        <span class="info-val">@usuario.DataCriacao.ToString("dd/MM/yyyy HH:mm")</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Último acesso:</span>
+                        <span class="info-val">@(usuario.UltimoAcesso?.ToString("dd/MM/yyyy HH:mm") ?? "Primeiro acesso")</span>
+                    </div>
+                </div>
+
+                <button type="button" class="btn-logout" @onclick="EfetuarLogout">
+                    <span>🚪 Encerrar Sessão (Sair)</span>
+                </button>
+            </div>
+
+            <!-- Formulário de Alteração de Cadastro -->
+            <div class="perfil-card card-edicao">
+                <h3 class="edicao-title">Atualizar Dados</h3>
+
+                @if (!string.IsNullOrEmpty(mensagemSucesso))
+                {
+                    <div class="alert alert-success">✅ @mensagemSucesso</div>
+                }
+
+                @if (!string.IsNullOrEmpty(mensagemErro))
+                {
+                    <div class="alert alert-danger">⚠️ @mensagemErro</div>
+                }
+
+                <form @onsubmit="SalvarAlteracoes" class="edicao-form">
+                    <div class="form-group">
+                        <label class="form-label" for="perf-nome">Nome Completo</label>
+                        <input id="perf-nome" type="text" class="form-control" @bind="novoNome" required />
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="perf-email">E-mail Cadastrado</label>
+                        <input id="perf-email" type="email" class="form-control" value="@usuario.Email" disabled />
+                        <span class="field-hint">O e-mail validado não pode ser alterado diretamente.</span>
+                    </div>
+
+                    <div class="separador-secao">
+                        <span>Alterar Senha (Opcional)</span>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="perf-senha-atual">Senha Atual</label>
+                        <input id="perf-senha-atual" type="password" class="form-control" placeholder="Digite apenas se for alterar a senha" @bind="senhaAtual" />
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="perf-nova-senha">Nova Senha</label>
+                        <input id="perf-nova-senha" type="password" class="form-control" placeholder="Mínimo 6 caracteres" @bind="novaSenha" />
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" class="btn-salvar" disabled="@salvando">
+                            @(salvando ? "Salvando..." : "Salvar Alterações")
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private Usuario? usuario;
+    private string novoNome = "";
+    private string senhaAtual = "";
+    private string novaSenha = "";
+    private bool carregando = true;
+    private bool salvando = false;
+    private string? mensagemSucesso;
+    private string? mensagemErro;
+
+    protected override async Task OnInitializedAsync()
+    {
+        usuario = await AuthService.ObterUsuarioLogadoAsync();
+        if (usuario != null)
+        {
+            novoNome = usuario.Nome;
+        }
+        carregando = false;
+    }
+
+    private string ObterIniciais(string nome)
+    {
+        if (string.IsNullOrWhiteSpace(nome)) return "U";
+        var partes = nome.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (partes.Length == 1) return partes[0][0].ToString().ToUpper();
+        return $"{partes[0][0]}{partes[^1][0]}".ToUpper();
+    }
+
+    private async Task SalvarAlteracoes()
+    {
+        if (usuario == null) return;
+
+        mensagemErro = null;
+        mensagemSucesso = null;
+        salvando = true;
+
+        try
+        {
+            var res = await AuthService.AtualizarPerfilAsync(usuario.Id, novoNome, senhaAtual, novaSenha);
+            if (res.Sucesso)
+            {
+                mensagemSucesso = res.Mensagem;
+                usuario = res.Usuario;
+                senhaAtual = "";
+                novaSenha = "";
+            }
+            else
+            {
+                mensagemErro = res.Mensagem;
+            }
+        }
+        catch (Exception ex)
+        {
+            mensagemErro = "Erro: " + ex.Message;
+        }
+        finally
+        {
+            salvando = false;
+        }
+    }
+
+    private async Task EfetuarLogout()
+    {
+        await AuthService.LogoutAsync();
+        Navigation.NavigateTo("/login", forceLoad: true);
+    }
+}

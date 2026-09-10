@@ -96,6 +96,27 @@ public class ValidadeService : IValidadeService
                 ";
                 await cmdMigrateProd.ExecuteNonQueryAsync();
             }
+
+            // Criação defensiva da tabela Usuarios caso o banco SQLite já exista
+            using var cmdCreateUsers = conn.CreateCommand();
+            cmdCreateUsers.CommandText = @"
+                CREATE TABLE IF NOT EXISTS ""Usuarios"" (
+                    ""Id"" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+                    ""Nome"" TEXT NOT NULL,
+                    ""Email"" TEXT NOT NULL,
+                    ""SenhaHash"" TEXT NOT NULL,
+                    ""SenhaSalt"" TEXT NOT NULL,
+                    ""EmailConfirmado"" INTEGER NOT NULL,
+                    ""TokenConfirmacao"" TEXT NULL,
+                    ""CodigoConfirmacao"" TEXT NULL,
+                    ""TokenExpiracao"" TEXT NULL,
+                    ""DataCriacao"" TEXT NOT NULL,
+                    ""UltimoAcesso"" TEXT NULL,
+                    ""Ativo"" INTEGER NOT NULL
+                );
+                CREATE UNIQUE INDEX IF NOT EXISTS ""IX_Usuarios_Email"" ON ""Usuarios"" (""Email"");
+            ";
+            await cmdCreateUsers.ExecuteNonQueryAsync();
         }
         catch
         {

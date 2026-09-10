@@ -54,9 +54,18 @@
                 <span class="nav-icon">🏬</span>
                 <span class="nav-text">Gestão de Lojas</span>
             </NavLink>
+
+            <NavLink class="nav-custom-link" href="perfil" @onclick="CollapseMenuOnMobile" title="Meu Cadastro e Perfil">
+                <span class="nav-icon">👤</span>
+                <span class="nav-text">@(usuarioLogado != null ? usuarioLogado.Nome.Split(' ')[0] : "Meu Perfil")</span>
+            </NavLink>
         </nav>
 
         <div class="nav-footer-status">
+            <button type="button" class="btn-nav-logout" @onclick="EfetuarLogout" title="Sair do Sistema (Encerrar Sessão)">
+                <span class="nav-icon">🚪</span>
+                <span class="nav-text">Sair</span>
+            </button>
             <div class="status-indicator" title="SQLite Local Ativo">
                 <span class="status-dot"></span>
                 <span class="status-text">SQLite Local Ativo</span>
@@ -69,7 +78,23 @@
     [Parameter] public bool IsDesktopCollapsed { get; set; }
     [Parameter] public EventCallback<bool> OnToggleDesktop { get; set; }
 
+    [Inject] private IAuthService AuthService { get; set; } = default!;
+    [Inject] private NavigationManager Navigation { get; set; } = default!;
+
     private bool collapseNavMenu = true;
+    private Usuario? usuarioLogado;
+
+    protected override async Task OnInitializedAsync()
+    {
+        usuarioLogado = await AuthService.ObterUsuarioLogadoAsync();
+        AuthService.OnAuthStateChanged += HandleAuthStateChanged;
+    }
+
+    private async void HandleAuthStateChanged()
+    {
+        usuarioLogado = await AuthService.ObterUsuarioLogadoAsync();
+        await InvokeAsync(StateHasChanged);
+    }
 
     private void ToggleNavMenu()
     {
@@ -84,5 +109,11 @@
     private void CollapseMenuOnMobile()
     {
         collapseNavMenu = true;
+    }
+
+    private async Task EfetuarLogout()
+    {
+        await AuthService.LogoutAsync();
+        Navigation.NavigateTo("/login", forceLoad: true);
     }
 }

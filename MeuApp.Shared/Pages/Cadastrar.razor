@@ -1,0 +1,164 @@
+@page "/cadastrar"
+@layout MeuApp.Shared.Layout.AuthLayout
+@inject IAuthService AuthService
+@inject NavigationManager Navigation
+
+<div class="auth-card">
+    <div class="auth-header">
+        <div class="auth-brand-badge">
+            <span class="auth-brand-icon">✨</span>
+        </div>
+        <h1 class="auth-title">Criar Conta</h1>
+        <p class="auth-subtitle">Cadastre-se para começar a controlar validades</p>
+    </div>
+
+    @if (!string.IsNullOrEmpty(mensagemErro))
+    {
+        <div class="auth-alert alert-danger">
+            <span>⚠️ @mensagemErro</span>
+        </div>
+    }
+
+    <form @onsubmit="EfetuarCadastro" class="auth-form">
+        <div class="form-group">
+            <label class="form-label" for="cad-nome">Nome Completo</label>
+            <div class="input-wrapper">
+                <span class="input-icon">👤</span>
+                <input id="cad-nome" 
+                       type="text" 
+                       class="form-control" 
+                       placeholder="Ex: Carlos Silva" 
+                       @bind="nome" 
+                       required 
+                       autofocus />
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label" for="cad-email">E-mail para Validação</label>
+            <div class="input-wrapper">
+                <span class="input-icon">✉️</span>
+                <input id="cad-email" 
+                       type="email" 
+                       class="form-control" 
+                       placeholder="seu.email@exemplo.com" 
+                       @bind="email" 
+                       required />
+            </div>
+            <span class="field-hint">Enviaremos um link e código de validação para este e-mail.</span>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label" for="cad-senha">Criar Senha</label>
+            <div class="input-wrapper">
+                <span class="input-icon">🔒</span>
+                <input id="cad-senha" 
+                       type="@(mostrarSenha ? "text" : "password")" 
+                       class="form-control" 
+                       placeholder="Mínimo 6 caracteres" 
+                       @bind="senha" 
+                       required />
+                <button type="button" 
+                        class="btn-toggle-senha" 
+                        @onclick="() => mostrarSenha = !mostrarSenha"
+                        title="@(mostrarSenha ? "Ocultar senha" : "Ver senha")">
+                    @(mostrarSenha ? "👁️" : "👁️‍🗨️")
+                </button>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label" for="cad-confirma">Confirmar Senha</label>
+            <div class="input-wrapper">
+                <span class="input-icon">🔑</span>
+                <input id="cad-confirma" 
+                       type="@(mostrarSenha ? "text" : "password")" 
+                       class="form-control" 
+                       placeholder="Repita a senha" 
+                       @bind="confirmacaoSenha" 
+                       required />
+            </div>
+        </div>
+
+        <button type="submit" class="btn-auth-primary" disabled="@carregando">
+            @if (carregando)
+            {
+                <span class="spinner-sm"></span>
+                <span>Enviando validação...</span>
+            }
+            else
+            {
+                <span>Cadastrar e Receber E-mail</span>
+            }
+        </button>
+    </form>
+
+    <div class="auth-footer">
+        <p class="footer-text">
+            Já possui uma conta? 
+            <a href="/login" class="footer-link">Entrar no sistema</a>
+        </p>
+    </div>
+</div>
+
+@code {
+    private string nome = "";
+    private string email = "";
+    private string senha = "";
+    private string confirmacaoSenha = "";
+    private bool mostrarSenha = false;
+    private bool carregando = false;
+    private string? mensagemErro;
+
+    private async Task EfetuarCadastro()
+    {
+        mensagemErro = null;
+
+        if (string.IsNullOrWhiteSpace(nome))
+        {
+            mensagemErro = "Por favor, informe seu nome.";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(email) || !email.Contains('@'))
+        {
+            mensagemErro = "Por favor, informe um e-mail válido.";
+            return;
+        }
+
+        if (senha != confirmacaoSenha)
+        {
+            mensagemErro = "As senhas não coincidem. Verifique e tente novamente.";
+            return;
+        }
+
+        if (senha.Length < 6)
+        {
+            mensagemErro = "A senha deve conter no mínimo 6 caracteres.";
+            return;
+        }
+
+        carregando = true;
+        try
+        {
+            var res = await AuthService.CadastrarAsync(nome, email, senha, Navigation.BaseUri);
+            if (res.Sucesso)
+            {
+                // Redireciona para a tela de confirmação de e-mail passando o e-mail
+                Navigation.NavigateTo($"/confirmar-email?email={Uri.EscapeDataString(email)}");
+            }
+            else
+            {
+                mensagemErro = res.Mensagem;
+            }
+        }
+        catch (Exception ex)
+        {
+            mensagemErro = "Erro ao cadastrar: " + ex.Message;
+        }
+        finally
+        {
+            carregando = false;
+        }
+    }
+}

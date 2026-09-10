@@ -1,0 +1,141 @@
+@page "/login"
+@layout MeuApp.Shared.Layout.AuthLayout
+@inject IAuthService AuthService
+@inject NavigationManager Navigation
+
+<div class="auth-card">
+    <div class="auth-header">
+        <div class="auth-brand-badge">
+            <span class="auth-brand-icon">📦</span>
+        </div>
+        <h1 class="auth-title">ValiData</h1>
+        <p class="auth-subtitle">Acesse sua conta para gerenciar validades</p>
+    </div>
+
+    @if (!string.IsNullOrEmpty(mensagemErro))
+    {
+        <div class="auth-alert alert-danger">
+            <span>⚠️ @mensagemErro</span>
+            @if (requerConfirmacao)
+            {
+                <div class="alert-action">
+                    <a href="/confirmar-email?email=@Uri.EscapeDataString(email)" class="btn-alert-link">
+                        Validar meu e-mail agora →
+                    </a>
+                </div>
+            }
+        </div>
+    }
+
+    @if (!string.IsNullOrEmpty(mensagemSucesso))
+    {
+        <div class="auth-alert alert-success">
+            <span>✅ @mensagemSucesso</span>
+        </div>
+    }
+
+    <form @onsubmit="EfetuarLogin" class="auth-form">
+        <div class="form-group">
+            <label class="form-label" for="login-email">E-mail</label>
+            <div class="input-wrapper">
+                <span class="input-icon">✉️</span>
+                <input id="login-email" 
+                       type="email" 
+                       class="form-control" 
+                       placeholder="seu.email@exemplo.com" 
+                       @bind="email" 
+                       required 
+                       autofocus />
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label" for="login-senha">Senha</label>
+            <div class="input-wrapper">
+                <span class="input-icon">🔒</span>
+                <input id="login-senha" 
+                       type="@(mostrarSenha ? "text" : "password")" 
+                       class="form-control" 
+                       placeholder="••••••••" 
+                       @bind="senha" 
+                       required />
+                <button type="button" 
+                        class="btn-toggle-senha" 
+                        @onclick="() => mostrarSenha = !mostrarSenha"
+                        title="@(mostrarSenha ? "Ocultar senha" : "Ver senha")">
+                    @(mostrarSenha ? "👁️" : "👁️‍🗨️")
+                </button>
+            </div>
+        </div>
+
+        <button type="submit" class="btn-auth-primary" disabled="@carregando">
+            @if (carregando)
+            {
+                <span class="spinner-sm"></span>
+                <span>Entrando...</span>
+            }
+            else
+            {
+                <span>Acessar o Sistema</span>
+            }
+        </button>
+    </form>
+
+    <div class="auth-footer">
+        <p class="footer-text">
+            Não tem cadastro? 
+            <a href="/cadastrar" class="footer-link">Cadastrar nova conta</a>
+        </p>
+    </div>
+</div>
+
+@code {
+    private string email = "";
+    private string senha = "";
+    private bool mostrarSenha = false;
+    private bool carregando = false;
+    private string? mensagemErro;
+    private string? mensagemSucesso;
+    private bool requerConfirmacao = false;
+
+    [SupplyParameterFromQuery]
+    public string? Mensagem { get; set; }
+
+    protected override void OnInitialized()
+    {
+        if (!string.IsNullOrWhiteSpace(Mensagem))
+        {
+            mensagemSucesso = Mensagem;
+        }
+    }
+
+    private async Task EfetuarLogin()
+    {
+        mensagemErro = null;
+        mensagemSucesso = null;
+        requerConfirmacao = false;
+        carregando = true;
+
+        try
+        {
+            var res = await AuthService.LoginAsync(email, senha);
+            if (res.Sucesso)
+            {
+                Navigation.NavigateTo("/", forceLoad: true);
+            }
+            else
+            {
+                mensagemErro = res.Mensagem;
+                requerConfirmacao = res.RequerConfirmacaoEmail;
+            }
+        }
+        catch (Exception ex)
+        {
+            mensagemErro = "Falha ao conectar: " + ex.Message;
+        }
+        finally
+        {
+            carregando = false;
+        }
+    }
+}
