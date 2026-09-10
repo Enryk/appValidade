@@ -111,9 +111,6 @@
                                         </td>
                                         <td style="text-align: right;">
                                             <div class="table-acoes-sm">
-                                                <button type="button" class="btn-copiar-sm" @onclick="() => AbrirModalCopiar(val)" title="Copiar ou Transferir para outra loja">
-                                                    📋 Replicar
-                                                </button>
                                                 <button type="button" class="btn-dar-baixa-sm" @onclick="() => AbrirModalBaixa(val)">
                                                     Dar Baixa
                                                 </button>
@@ -307,13 +304,6 @@
     }
 </div>
 
-@* Modal de Cópia / Transferência *@
-<ModalCopiarValidade IsVisible="exibirModalCopiar"
-                     Registro="registroParaCopiar"
-                     Lojas="lojas"
-                     OnConfirmar="ConfirmarCopia"
-                     OnCancelar="FecharModalCopiar" />
-
 @* Modal Compartilhado de Baixa *@
 <ModalBaixa IsVisible="exibirModalBaixa"
             Registro="registroParaBaixa"
@@ -346,10 +336,6 @@
     // Modal de Baixa
     private bool exibirModalBaixa = false;
     private RegistroValidade? registroParaBaixa = null;
-
-    // Modal de Copiar / Transferir
-    private bool exibirModalCopiar = false;
-    private RegistroValidade? registroParaCopiar = null;
 
     private ElementReference barcodeInputRef;
 
@@ -574,56 +560,6 @@
             }
         }
         FecharModalBaixa();
-    }
-
-    // Modal Copiar / Transferir
-    private void AbrirModalCopiar(RegistroValidade reg)
-    {
-        registroParaCopiar = reg;
-        exibirModalCopiar = true;
-    }
-
-    private void FecharModalCopiar()
-    {
-        exibirModalCopiar = false;
-        registroParaCopiar = null;
-    }
-
-    private async Task ConfirmarCopia(ModalCopiarValidade.OpcaoCopiarValidadeArgs args)
-    {
-        if (registroParaCopiar == null) return;
-        var nomeProd = produtoEncontrado?.Nome ?? "Produto";
-
-        if (args.Modo == "transferir")
-        {
-            await ValidadeService.TransferirValidadeAsync(args.RegistroId, args.LojaDestinoId);
-            feedbackMensagem = $"Lote de '{nomeProd}' transferido para {args.NomeLojaDestino} com sucesso!";
-        }
-        else
-        {
-            if (args.ParaTodas)
-            {
-                var total = await ValidadeService.CopiarValidadeParaTodasLojasAsync(args.RegistroId);
-                feedbackMensagem = total > 0 
-                    ? $"Lote de '{nomeProd}' replicado com sucesso para todas as outras {total} lojas!" 
-                    : $"O lote de '{nomeProd}' já existia nas outras lojas.";
-            }
-            else
-            {
-                var copia = await ValidadeService.CopiarValidadeAsync(args.RegistroId, args.LojaDestinoId);
-                feedbackMensagem = copia != null 
-                    ? $"Lote de '{nomeProd}' copiado para {args.NomeLojaDestino} com sucesso!" 
-                    : $"A loja {args.NomeLojaDestino} já possui este lote ativo.";
-            }
-        }
-
-        feedbackTipo = "success";
-        FecharModalCopiar();
-
-        if (produtoEncontrado != null)
-        {
-            validadesDestaLoja = await ValidadeService.GetValidadesAtivasDoProdutoNaLojaAsync(produtoEncontrado.Id, lojaSelecionadaId);
-        }
     }
 
     private void ReiniciarBusca()

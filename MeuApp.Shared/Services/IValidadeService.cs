@@ -22,11 +22,6 @@ public interface IValidadeService
     Task<List<RegistroValidade>> AdicionarValidadeMultiplasLojasAsync(int produtoId, IEnumerable<int> lojasIds, DateTime dataValidade, bool emPromocao);
     Task AtualizarNomeProdutoAsync(int produtoId, string novoNome);
 
-    // Cópia e Transferência entre Lojas
-    Task<RegistroValidade?> CopiarValidadeAsync(int validadeId, int lojaDestinoId);
-    Task<int> CopiarValidadeParaTodasLojasAsync(int validadeId);
-    Task TransferirValidadeAsync(int validadeId, int lojaDestinoId);
-
     // Monitoramento
     Task<List<RegistroValidade>> GetValidadesAtivasAsync(int? lojaId, string filtroRapido, DateTime? dataInicio = null, DateTime? dataFim = null);
     Task AlternarPromocaoAsync(int validadeId, bool emPromocao);

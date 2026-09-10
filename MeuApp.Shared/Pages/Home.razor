@@ -214,8 +214,8 @@
                             <th>Nome do Produto</th>
                             <th>Validade & Prazo</th>
                             <th>Data Coleta</th>
-                            <th>Em Promoção</th>
-                            <th style="text-align: right;">Ação</th>
+                            <th style="width: 75px; text-align: center;">Promoção</th>
+                            <th style="text-align: right; width: 125px;">Ação</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -287,7 +287,7 @@
                                 <td>
                                     <span class="data-coleta-cell">@item.DataColeta.ToString("dd/MM/yyyy")</span>
                                 </td>
-                                <td>
+                                <td style="text-align: center;">
                                     <label class="switch-promocao">
                                         <input type="checkbox" 
                                                checked="@item.EmPromocao" 
@@ -302,12 +302,6 @@
                                                 title="Enviar este produto via WhatsApp"
                                                 @onclick="() => CompartilharItemIndividual(item)">
                                             💬
-                                        </button>
-                                        <button type="button" 
-                                                class="btn-copiar-loja" 
-                                                title="Copiar ou Transferir para outra Loja"
-                                                @onclick="() => AbrirModalCopiar(item)">
-                                            📋 Replicar
                                         </button>
                                         <button type="button" 
                                                 class="btn-dar-baixa" 
@@ -408,9 +402,6 @@
                                     <button type="button" class="btn-whatsapp-card btn-mobile-acao" @onclick="() => CompartilharItemIndividual(item)" title="Enviar via WhatsApp">
                                         💬 WhatsApp
                                     </button>
-                                    <button type="button" class="btn-copiar-loja btn-mobile-acao" @onclick="() => AbrirModalCopiar(item)">
-                                        📋 Replicar
-                                    </button>
                                     <button type="button" class="btn-dar-baixa btn-mobile-acao" @onclick="() => AbrirModalBaixa(item)">
                                         Dar Baixa
                                     </button>
@@ -503,13 +494,6 @@
                            NomeLoja="@NomeLojaAtual"
                            NomeLojaPadrao="@NomeLojaAtual"
                            OnFechar="FecharModalWhatsApp" />
-
-<!-- Modal de Cópia / Transferência de Validade -->
-<ModalCopiarValidade IsVisible="exibirModalCopiar"
-                     Registro="itemParaCopiar"
-                     Lojas="lojas"
-                     OnConfirmar="ConfirmarCopiaOuTransferencia"
-                     OnCancelar="FecharModalCopiar" />
 
 <!-- Modal de Baixa de Validade -->
 <ModalBaixa IsVisible="exibirModalBaixa"
@@ -701,62 +685,6 @@
             await CarregarValidades();
         }
         FecharModalBaixa();
-    }
-
-    // Modal Copiar / Transferir
-    private bool exibirModalCopiar = false;
-    private RegistroValidade? itemParaCopiar = null;
-
-    private void AbrirModalCopiar(RegistroValidade item)
-    {
-        itemParaCopiar = item;
-        exibirModalCopiar = true;
-    }
-
-    private void FecharModalCopiar()
-    {
-        exibirModalCopiar = false;
-        itemParaCopiar = null;
-    }
-
-    private async Task ConfirmarCopiaOuTransferencia(ModalCopiarValidade.OpcaoCopiarValidadeArgs args)
-    {
-        if (itemParaCopiar == null) return;
-
-        var nomeProd = itemParaCopiar.Produto?.Nome ?? "Produto";
-
-        if (args.Modo == "transferir")
-        {
-            await ValidadeService.TransferirValidadeAsync(args.RegistroId, args.LojaDestinoId);
-            feedbackToast = $"Lote de '{nomeProd}' transferido com sucesso para {args.NomeLojaDestino}!";
-        }
-        else // copiar
-        {
-            if (args.ParaTodas)
-            {
-                var total = await ValidadeService.CopiarValidadeParaTodasLojasAsync(args.RegistroId);
-                feedbackToast = total > 0 
-                    ? $"Lote de '{nomeProd}' replicado com sucesso para {total} outra(s) loja(s)!" 
-                    : $"O lote de '{nomeProd}' já existia nas outras lojas.";
-            }
-            else
-            {
-                var copia = await ValidadeService.CopiarValidadeAsync(args.RegistroId, args.LojaDestinoId);
-                feedbackToast = copia != null 
-                    ? $"Lote de '{nomeProd}' copiado para {args.NomeLojaDestino} com sucesso!" 
-                    : $"A loja {args.NomeLojaDestino} já possui este lote ativo cadastrado.";
-            }
-        }
-
-        FecharModalCopiar();
-        await CarregarValidades();
-
-        _ = Task.Run(async () =>
-        {
-            await Task.Delay(3500);
-            feedbackToast = string.Empty;
-            await InvokeAsync(StateHasChanged);
-        });
     }
 
     // Métodos de Seleção e WhatsApp

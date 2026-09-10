@@ -481,7 +481,7 @@
 
 .tabela-monitoramento {
     width: 100%;
-    min-width: 940px;
+    min-width: 760px;
     border-collapse: separate;
     border-spacing: 0;
 }
@@ -535,7 +535,9 @@
     background-color: #f8fafc;
     box-shadow: -3px 0 6px -2px rgba(0, 0, 0, 0.06);
     text-align: right;
-    min-width: 200px;
+    width: 130px;
+    min-width: 130px;
+    max-width: 140px;
 }
 
 .tabela-monitoramento td:last-child {
@@ -545,7 +547,9 @@
     background-color: #ffffff;
     box-shadow: -3px 0 6px -2px rgba(0, 0, 0, 0.06);
     text-align: right;
-    min-width: 200px;
+    width: 130px;
+    min-width: 130px;
+    max-width: 140px;
 }
 
 /* Sincronização de cores de fundo para células sticky */
@@ -687,10 +691,11 @@
     color: #0f172a;
     font-size: 0.88rem;
     font-weight: 700;
-    min-width: 220px;
-    max-width: 380px;
+    min-width: 150px;
+    max-width: 320px;
     line-height: 1.35;
     display: inline-block;
+    word-break: break-word;
 }
 
 .validade-cell-group {
@@ -725,7 +730,7 @@
 .table-acoes-group {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
     justify-content: flex-end;
 }
 
@@ -733,11 +738,11 @@
     background: #25D366;
     color: #ffffff;
     border: 1px solid #1ebc59;
-    padding: 6px 10px;
+    padding: 5px 9px;
     border-radius: 8px;
-    font-size: 0.95rem;
+    font-size: 0.9rem;
     cursor: pointer;
-    min-height: 36px;
+    min-height: 34px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -749,39 +754,16 @@
     transform: translateY(-1px);
 }
 
-.btn-copiar-loja {
-    background: #eef2ff;
-    color: #4f46e5;
-    border: 1px solid #c7d2fe;
-    padding: 6px 12px;
-    border-radius: 8px;
-    font-size: 0.8rem;
-    font-weight: 700;
-    cursor: pointer;
-    min-height: 36px;
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    transition: all 0.15s ease;
-    white-space: nowrap;
-}
-
-.btn-copiar-loja:hover {
-    background: #6366f1;
-    border-color: #6366f1;
-    color: #ffffff;
-}
-
 .btn-dar-baixa {
     background: #fee2e2;
     color: #991b1b;
     border: 1px solid #fca5a5;
-    padding: 6px 14px;
+    padding: 6px 12px;
     border-radius: 8px;
-    font-size: 0.8rem;
+    font-size: 0.78rem;
     font-weight: 700;
     cursor: pointer;
-    min-height: 36px;
+    min-height: 34px;
     transition: all 0.15s ease;
     white-space: nowrap;
 }

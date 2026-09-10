@@ -294,29 +294,6 @@
     justify-content: flex-end;
 }
 
-.btn-copiar-sm {
-    background: #eef2ff;
-    color: #4f46e5;
-    border: 1px solid #c7d2fe;
-    padding: 6px 10px;
-    border-radius: 8px;
-    font-size: 0.78rem;
-    font-weight: 700;
-    cursor: pointer;
-    min-height: 36px;
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    transition: all 0.15s ease;
-    white-space: nowrap;
-}
-
-.btn-copiar-sm:hover {
-    background: #6366f1;
-    color: #ffffff;
-    border-color: #6366f1;
-}
-
 .btn-dar-baixa-sm {
     background: #fee2e2;
     color: #991b1b;
