@@ -391,3 +391,231 @@
 .btn-confirmar-exclusao:hover {
     background: #b91c1c;
 }
+
+/* ==========================================
+   NAVEGAÇÃO DE ABAS
+   ========================================== */
+.tabs-nav-lojas {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 22px;
+    border-bottom: 2px solid #e2e8f0;
+    padding-bottom: 4px;
+}
+
+.tab-btn {
+    background: transparent;
+    border: none;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #64748b;
+    padding: 10px 18px;
+    border-radius: 10px 10px 0 0;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border-bottom: 3px solid transparent;
+    margin-bottom: -6px;
+}
+
+.tab-btn:hover {
+    color: #4f46e5;
+    background: #f8fafc;
+}
+
+.tab-btn.active {
+    color: #4f46e5;
+    border-bottom: 3px solid #6366f1;
+    background: #eef2ff;
+}
+
+/* Empty State */
+.empty-state-loja {
+    text-align: center;
+    padding: 36px 20px;
+    background: #f8fafc;
+    border-radius: 12px;
+    border: 1px dashed #cbd5e1;
+}
+
+.empty-icon {
+    font-size: 2.5rem;
+    display: block;
+    margin-bottom: 10px;
+}
+
+.empty-text {
+    font-weight: 700;
+    font-size: 1rem;
+    color: #334155;
+    margin: 0;
+}
+
+.empty-subtext {
+    font-size: 0.85rem;
+    color: #64748b;
+    margin-top: 6px;
+}
+
+/* Banner Informativo de Times */
+.card-time-info-banner {
+    background: linear-gradient(135deg, #eef2ff 0%, #f0fdf4 100%);
+    border: 1.5px solid #c7d2fe;
+    border-radius: 14px;
+    padding: 18px 20px;
+    margin-bottom: 20px;
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+}
+
+.info-banner-icon {
+    font-size: 2rem;
+    background: #ffffff;
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+    flex-shrink: 0;
+}
+
+.info-banner-content strong {
+    font-size: 1rem;
+    color: #1e1b4b;
+    display: block;
+    margin-bottom: 4px;
+}
+
+.info-banner-content p {
+    font-size: 0.88rem;
+    color: #334155;
+    margin: 0 0 10px 0;
+    line-height: 1.45;
+}
+
+.info-banner-conta {
+    font-size: 0.82rem;
+    color: #4338ca;
+    background: #ffffff;
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 20px;
+    border: 1px solid #c7d2fe;
+}
+
+/* Grid de Membros */
+.membros-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 14px;
+}
+
+.membro-item-card {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    padding: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    transition: all 0.15s ease;
+}
+
+.membro-item-card:hover {
+    border-color: #cbd5e1;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+}
+
+.membro-item-card.card-dono {
+    background: #faf5ff;
+    border: 1.5px solid #d8b4fe;
+}
+
+.membro-main-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+}
+
+.membro-icon-box {
+    font-size: 1.5rem;
+    background: #e2e8f0;
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.membro-icon-box.dono-icon {
+    background: #f3e8ff;
+}
+
+.membro-info {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    gap: 2px;
+}
+
+.membro-badges-row {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    margin-bottom: 2px;
+}
+
+.badge-dono {
+    background: #7e22ce;
+    color: #ffffff;
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 12px;
+    text-transform: uppercase;
+}
+
+.badge-papel {
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 12px;
+    text-transform: uppercase;
+}
+
+.papel-admin {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.papel-colab {
+    background: #e0f2fe;
+    color: #0369a1;
+}
+
+.badge-data {
+    font-size: 0.72rem;
+    color: #94a3b8;
+}
+
+.membro-nome {
+    font-size: 0.95rem;
+    color: #1e293b;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.membro-email {
+    font-size: 0.8rem;
+    color: #64748b;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}

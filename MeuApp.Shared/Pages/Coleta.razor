@@ -10,15 +10,18 @@
         </div>
 
         @* Seletor de Loja no Topo *@
-        <div class="store-selector-box">
-            <label class="input-label">Loja Selecionada:</label>
-            <select class="form-select-custom" @bind="lojaSelecionadaId" @bind:after="OnLojaAlterada">
-                @foreach (var loja in lojas)
-                {
-                    <option value="@loja.Id">@loja.Nome (@loja.CodigoLoja)</option>
-                }
-            </select>
-        </div>
+        @if (lojas.Any())
+        {
+            <div class="store-selector-box">
+                <label class="input-label">Loja Selecionada:</label>
+                <select class="form-select-custom" @bind="lojaSelecionadaId" @bind:after="OnLojaAlterada">
+                    @foreach (var loja in lojas)
+                    {
+                        <option value="@loja.Id">@loja.Nome (@loja.CodigoLoja)</option>
+                    }
+                </select>
+            </div>
+        }
     </div>
 
     @if (!string.IsNullOrEmpty(feedbackMensagem))
@@ -29,8 +32,23 @@
         </div>
     }
 
-    @* Campo de Bipagem com Autofocus *@
-    <div class="scanner-card">
+    @if (!lojas.Any())
+    {
+        <div class="empty-state-card" style="background:#fff; border:1px solid #e2e8f0; border-radius:16px; padding:40px 20px; text-align:center; box-shadow:0 2px 8px rgba(0,0,0,0.03);">
+            <span style="font-size: 3rem; display: block; margin-bottom: 12px;">🏬</span>
+            <h2 style="font-size: 1.25rem; font-weight: 800; color: #1e293b; margin: 0 0 8px 0;">Nenhuma Loja Cadastrada</h2>
+            <p style="color: #64748b; font-size: 0.95rem; max-width: 480px; margin: 0 auto 20px auto; line-height: 1.5;">
+                Para começar a bipar produtos e registrar validades, cadastre a sua primeira filial ou unidade em Gestão de Lojas.
+            </p>
+            <a href="lojas" style="display: inline-block; background: #6366f1; color: #fff; text-decoration: none; padding: 12px 24px; border-radius: 10px; font-weight: 700; font-size: 0.95rem;">
+                🏬 Cadastrar Minha Primeira Loja
+            </a>
+        </div>
+    }
+    else
+    {
+        @* Campo de Bipagem com Autofocus *@
+        <div class="scanner-card">
         <form @onsubmit="BuscarOuBipar" class="scanner-form">
             <div class="scanner-input-group">
                 <span class="scanner-icon">📟</span>
@@ -302,6 +320,7 @@
             </div>
         </div>
     }
+}
 </div>
 
 @* Modal Compartilhado de Baixa *@

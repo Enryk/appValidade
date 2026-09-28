@@ -1,12 +1,13 @@
 @page "/lojas"
 @namespace MeuApp.Shared.Pages
 @inject IValidadeService ValidadeService
+@inject IAuthService AuthService
 
 <div class="lojas-page">
     <header class="page-header">
         <div>
-            <h1 class="page-title">Gestão de Lojas</h1>
-            <p class="page-subtitle">Cadastre, edite ou remova unidades/filiais para controle de validades</p>
+            <h1 class="page-title">Gestão de Lojas e Times</h1>
+            <p class="page-subtitle">Cadastre filiais e convide membros para colaborar no controle de validades</p>
         </div>
     </header>
 
@@ -18,91 +19,214 @@
         </div>
     }
 
-    <!-- Formulário Nova Loja / Editar Loja -->
-    <div class="card-loja-form @(lojaEmEdicaoId.HasValue ? "modo-edicao" : "")">
-        <div class="form-header-row">
-            <h2 class="form-title">
-                @(lojaEmEdicaoId.HasValue ? $"✏️ Editando: {lojaEmEdicaoNome}" : "🏬 Cadastrar Nova Loja")
-            </h2>
-            @if (lojaEmEdicaoId.HasValue)
-            {
-                <span class="badge-edicao">Modo de Edição</span>
-            }
+    <!-- Navegação de Abas -->
+    <div class="tabs-nav-lojas">
+        <button type="button" 
+                class="tab-btn @(abaAtiva == "lojas" ? "active" : "")" 
+                @onclick='() => SetAba("lojas")'>
+            🏬 Lojas Cadastradas (@lojas.Count)
+        </button>
+        <button type="button" 
+                class="tab-btn @(abaAtiva == "times" ? "active" : "")" 
+                @onclick='() => SetAba("times")'>
+            👥 Times e Equipe (@(membrosTime.Count + 1))
+        </button>
+    </div>
+
+    @* ==========================================
+       ABA 1: GESTÃO DE LOJAS
+       ========================================== *@
+    @if (abaAtiva == "lojas")
+    {
+        <!-- Formulário Nova Loja / Editar Loja -->
+        <div class="card-loja-form @(lojaEmEdicaoId.HasValue ? "modo-edicao" : "")">
+            <div class="form-header-row">
+                <h2 class="form-title">
+                    @(lojaEmEdicaoId.HasValue ? $"✏️ Editando: {lojaEmEdicaoNome}" : "🏬 Cadastrar Nova Loja")
+                </h2>
+                @if (lojaEmEdicaoId.HasValue)
+                {
+                    <span class="badge-edicao">Modo de Edição</span>
+                }
+            </div>
+
+            <div class="form-grid">
+                <div class="field-group">
+                    <label class="field-label">Código da Loja (Sigla/ID): *</label>
+                    <input type="text" class="form-input" placeholder="Ex: LJ-03, SHOPPING" @bind="codigoLojaInput" />
+                </div>
+                <div class="field-group full-width">
+                    <label class="field-label">Nome da Loja: *</label>
+                    <input type="text" class="form-input" placeholder="Ex: Loja 03 - Hipermercado Norte" @bind="nomeLojaInput" />
+                </div>
+            </div>
+
+            <div class="form-actions">
+                @if (lojaEmEdicaoId.HasValue)
+                {
+                    <button type="button" class="btn-cancelar-edicao" @onclick="CancelarEdicao">
+                        Cancelar Edição
+                    </button>
+                    <button type="button" class="btn-salvar-alteracoes" @onclick="SalvarAlteracoes">
+                        💾 Salvar Alterações
+                    </button>
+                }
+                else
+                {
+                    <button type="button" class="btn-salvar-loja" @onclick="CadastrarLoja">
+                        Cadastrar Loja
+                    </button>
+                }
+            </div>
         </div>
 
-        <div class="form-grid">
-            <div class="field-group">
-                <label class="field-label">Código da Loja (Sigla/ID): *</label>
-                <input type="text" class="form-input" placeholder="Ex: LJ-03, SHOPPING" @bind="codigoLojaInput" />
-            </div>
-            <div class="field-group full-width">
-                <label class="field-label">Nome da Loja: *</label>
-                <input type="text" class="form-input" placeholder="Ex: Loja 03 - Hipermercado Norte" @bind="nomeLojaInput" />
-            </div>
-        </div>
-
-        <div class="form-actions">
-            @if (lojaEmEdicaoId.HasValue)
+        <!-- Lista de Lojas -->
+        <div class="card-lojas-lista">
+            <h2 class="lista-title">Lojas Cadastradas (@lojas.Count)</h2>
+            @if (lojas.Count == 0)
             {
-                <button type="button" class="btn-cancelar-edicao" @onclick="CancelarEdicao">
-                    Cancelar Edição
-                </button>
-                <button type="button" class="btn-salvar-alteracoes" @onclick="SalvarAlteracoes">
-                    💾 Salvar Alterações
-                </button>
+                <div class="empty-state-loja">
+                    <span class="empty-icon">🏬</span>
+                    <p class="empty-text">Nenhuma loja cadastrada no momento.</p>
+                    <p class="empty-subtext">Cadastre a primeira loja acima para começar a bipar produtos e controlar validades!</p>
+                </div>
             }
             else
             {
-                <button type="button" class="btn-salvar-loja" @onclick="CadastrarLoja">
-                    Cadastrar Loja
-                </button>
+                <div class="lojas-grid">
+                    @foreach (var loja in lojas)
+                    {
+                        <div class="loja-item-card @(lojaEmEdicaoId == loja.Id ? "card-sendo-editado" : "")">
+                            <div class="loja-main-info">
+                                <div class="loja-icon-box">🏬</div>
+                                <div class="loja-info">
+                                    <span class="loja-codigo">@loja.CodigoLoja</span>
+                                    <strong class="loja-nome">@loja.Nome</strong>
+                                </div>
+                            </div>
+
+                            <div class="loja-card-actions">
+                                <button type="button" 
+                                        class="btn-acao-loja btn-editar-loja" 
+                                        title="Editar nome e código desta loja"
+                                        @onclick="() => IniciarEdicao(loja)">
+                                    ✏️ Editar
+                                </button>
+                                <button type="button" 
+                                        class="btn-acao-loja btn-excluir-loja" 
+                                        title="Excluir esta loja"
+                                        @onclick="() => AbrirConfirmacaoExclusao(loja)">
+                                    🗑️ Excluir
+                                </button>
+                            </div>
+                        </div>
+                    }
+                </div>
             }
         </div>
-    </div>
+    }
 
-    <!-- Lista de Lojas -->
-    <div class="card-lojas-lista">
-        <h2 class="lista-title">Lojas Cadastradas (@lojas.Count)</h2>
-        @if (lojas.Count == 0)
-        {
-            <p class="empty-text">Nenhuma loja cadastrada no momento.</p>
-        }
-        else
-        {
-            <div class="lojas-grid">
-                @foreach (var loja in lojas)
+    @* ==========================================
+       ABA 2: GESTÃO DE TIMES E EQUIPE
+       ========================================== *@
+    @if (abaAtiva == "times")
+    {
+        <div class="card-time-info-banner">
+            <div class="info-banner-icon">👥</div>
+            <div class="info-banner-content">
+                <strong>Compartilhamento com a Equipe</strong>
+                <p>
+                    Cadastre o e-mail dos membros do seu time (repositores, gerentes, fiscais) para que eles acessem os dados coletados das suas lojas quando fizerem login com aquele e-mail.
+                </p>
+                <div class="info-banner-conta">
+                    <span>Espaço de Trabalho: <strong>@(contaAtual?.Nome ?? "Minha Organização")</strong></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Formulário Adicionar Novo Membro -->
+        <div class="card-loja-form">
+            <div class="form-header-row">
+                <h2 class="form-title">➕ Adicionar Colaborador ao Time</h2>
+            </div>
+
+            <div class="form-grid">
+                <div class="field-group">
+                    <label class="field-label">E-mail do Membro: *</label>
+                    <input type="email" class="form-input" placeholder="Ex: colaborador@loja.com" @bind="novoMembroEmail" />
+                </div>
+                <div class="field-group">
+                    <label class="field-label">Nome / Identificação: (Opcional)</label>
+                    <input type="text" class="form-input" placeholder="Ex: Carlos Repositor" @bind="novoMembroNome" />
+                </div>
+                <div class="field-group">
+                    <label class="field-label">Permissão / Papel:</label>
+                    <select class="form-input" @bind="novoMembroPapel">
+                        <option value="Colaborador">Colaborador (Coleta e Consulta)</option>
+                        <option value="Administrador">Administrador (Acesso Total)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <button type="button" class="btn-salvar-loja" @onclick="AdicionarMembro">
+                    👥 Adicionar ao Time
+                </button>
+            </div>
+        </div>
+
+        <!-- Lista de Membros do Time -->
+        <div class="card-lojas-lista">
+            <h2 class="lista-title">Membros com Acesso aos Dados (@(membrosTime.Count + 1))</h2>
+            <div class="membros-grid">
+                <!-- Proprietário / Dono da Conta -->
+                <div class="membro-item-card card-dono">
+                    <div class="membro-main-info">
+                        <div class="membro-icon-box dono-icon">👑</div>
+                        <div class="membro-info">
+                            <div class="membro-badges-row">
+                                <span class="badge-dono">Proprietário da Conta</span>
+                            </div>
+                            <strong class="membro-nome">@(usuarioLogado?.Nome ?? "Dono da Conta")</strong>
+                            <span class="membro-email">@(usuarioLogado?.Email ?? "")</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Membros Convidados -->
+                @foreach (var membro in membrosTime)
                 {
-                    <div class="loja-item-card @(lojaEmEdicaoId == loja.Id ? "card-sendo-editado" : "")">
-                        <div class="loja-main-info">
-                            <div class="loja-icon-box">🏬</div>
-                            <div class="loja-info">
-                                <span class="loja-codigo">@loja.CodigoLoja</span>
-                                <strong class="loja-nome">@loja.Nome</strong>
+                    <div class="membro-item-card">
+                        <div class="membro-main-info">
+                            <div class="membro-icon-box">👤</div>
+                            <div class="membro-info">
+                                <div class="membro-badges-row">
+                                    <span class="badge-papel @(membro.Papel == "Administrador" ? "papel-admin" : "papel-colab")">
+                                        @membro.Papel
+                                    </span>
+                                    <span class="badge-data">Adicionado em @membro.DataAdicao.ToString("dd/MM/yyyy")</span>
+                                </div>
+                                <strong class="membro-nome">@(string.IsNullOrWhiteSpace(membro.Nome) ? membro.Email : membro.Nome)</strong>
+                                <span class="membro-email">@membro.Email</span>
                             </div>
                         </div>
 
                         <div class="loja-card-actions">
                             <button type="button" 
-                                    class="btn-acao-loja btn-editar-loja" 
-                                    title="Editar nome e código desta loja"
-                                    @onclick="() => IniciarEdicao(loja)">
-                                ✏️ Editar
-                            </button>
-                            <button type="button" 
                                     class="btn-acao-loja btn-excluir-loja" 
-                                    title="Excluir esta loja"
-                                    @onclick="() => AbrirConfirmacaoExclusao(loja)">
-                                🗑️ Excluir
+                                    title="Revogar acesso deste membro"
+                                    @onclick="() => AbrirConfirmacaoExclusaoMembro(membro)">
+                                🗑️ Remover Acesso
                             </button>
                         </div>
                     </div>
                 }
             </div>
-        }
-    </div>
+        </div>
+    }
 </div>
 
-<!-- Modal de Confirmação de Exclusão -->
+<!-- Modal de Confirmação de Exclusão de Loja -->
 @if (exibirModalExclusao && lojaParaExcluir != null)
 {
     <div class="modal-backdrop-loja" @onclick="FecharModalExclusao">
@@ -131,18 +255,62 @@
     </div>
 }
 
+<!-- Modal de Confirmação de Remoção de Membro do Time -->
+@if (exibirModalExclusaoMembro && membroParaExcluir != null)
+{
+    <div class="modal-backdrop-loja" @onclick="FecharModalExclusaoMembro">
+        <div class="modal-dialog-loja" @onclick:stopPropagation="true">
+            <div class="modal-header-loja">
+                <span class="modal-icon-danger">⚠️</span>
+                <h3 class="modal-title-loja">Revogar Acesso do Membro?</h3>
+            </div>
+            <div class="modal-body-loja">
+                <p>
+                    Tem certeza de que deseja revogar o acesso de <strong>@membroParaExcluir.Email</strong>?
+                </p>
+                <div class="alerta-perigo">
+                    <span>⚠️ Este usuário não terá mais acesso às lojas e validades da sua conta.</span>
+                </div>
+            </div>
+            <div class="modal-footer-loja">
+                <button type="button" class="btn-cancelar-modal" @onclick="FecharModalExclusaoMembro">
+                    Cancelar
+                </button>
+                <button type="button" class="btn-confirmar-exclusao" @onclick="ConfirmarExclusaoMembro">
+                    Sim, Revogar Acesso
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
 @code {
+    private string abaAtiva = "lojas"; // "lojas" ou "times"
     private List<Loja> lojas = new();
+    private Conta? contaAtual;
+    private Usuario? usuarioLogado;
+    private List<MembroTime> membrosTime = new();
+
+    // Formulário Loja
     private string codigoLojaInput = string.Empty;
     private string nomeLojaInput = string.Empty;
 
-    // Modo de Edição
+    // Formulário Membro
+    private string novoMembroEmail = string.Empty;
+    private string novoMembroNome = string.Empty;
+    private string novoMembroPapel = "Colaborador";
+
+    // Modo de Edição de Loja
     private int? lojaEmEdicaoId = null;
     private string lojaEmEdicaoNome = string.Empty;
 
-    // Modal de Exclusão
+    // Modal de Exclusão de Loja
     private bool exibirModalExclusao = false;
     private Loja? lojaParaExcluir = null;
+
+    // Modal de Exclusão de Membro
+    private bool exibirModalExclusaoMembro = false;
+    private MembroTime? membroParaExcluir = null;
 
     // Feedback
     private string feedbackMensagem = string.Empty;
@@ -151,11 +319,25 @@
     protected override async Task OnInitializedAsync()
     {
         await CarregarLojas();
+        await CarregarDadosTime();
+    }
+
+    private void SetAba(string aba)
+    {
+        abaAtiva = aba;
+        feedbackMensagem = string.Empty;
     }
 
     private async Task CarregarLojas()
     {
         lojas = await ValidadeService.GetLojasAsync();
+    }
+
+    private async Task CarregarDadosTime()
+    {
+        usuarioLogado = await AuthService.ObterUsuarioLogadoAsync();
+        contaAtual = await ValidadeService.ObterContaAtualAsync();
+        membrosTime = await ValidadeService.GetMembrosTimeAsync();
     }
 
     private async Task CadastrarLoja()
@@ -252,6 +434,60 @@
 
             FecharModalExclusao();
             await CarregarLojas();
+        }
+    }
+
+    private async Task AdicionarMembro()
+    {
+        if (string.IsNullOrWhiteSpace(novoMembroEmail) || !novoMembroEmail.Contains('@'))
+        {
+            feedbackMensagem = "Por favor, informe um endereço de e-mail válido para o colaborador.";
+            feedbackTipo = "info";
+            return;
+        }
+
+        var emailNorm = novoMembroEmail.Trim().ToLowerInvariant();
+        if (usuarioLogado != null && emailNorm == usuarioLogado.Email.Trim().ToLowerInvariant())
+        {
+            feedbackMensagem = "Você já é o proprietário desta conta.";
+            feedbackTipo = "info";
+            return;
+        }
+
+        var res = await ValidadeService.AdicionarMembroTimeAsync(novoMembroEmail, novoMembroNome, novoMembroPapel);
+        feedbackMensagem = $"Colaborador '{res.Email}' adicionado ao seu Time com sucesso! Ao acessar com este e-mail, os dados da sua loja serão compartilhados.";
+        feedbackTipo = "success";
+
+        novoMembroEmail = string.Empty;
+        novoMembroNome = string.Empty;
+        novoMembroPapel = "Colaborador";
+
+        await CarregarDadosTime();
+    }
+
+    private void AbrirConfirmacaoExclusaoMembro(MembroTime membro)
+    {
+        membroParaExcluir = membro;
+        exibirModalExclusaoMembro = true;
+    }
+
+    private void FecharModalExclusaoMembro()
+    {
+        exibirModalExclusaoMembro = false;
+        membroParaExcluir = null;
+    }
+
+    private async Task ConfirmarExclusaoMembro()
+    {
+        if (membroParaExcluir != null)
+        {
+            var email = membroParaExcluir.Email;
+            await ValidadeService.RemoverMembroTimeAsync(membroParaExcluir.Id);
+            feedbackMensagem = $"Acesso do membro '{email}' revogado com sucesso.";
+            feedbackTipo = "success";
+
+            FecharModalExclusaoMembro();
+            await CarregarDadosTime();
         }
     }
 }

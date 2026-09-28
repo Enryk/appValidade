@@ -10,15 +10,39 @@ namespace MeuApp.Shared.Services;
 public class ValidadeService : IValidadeService
 {
     private readonly IDbContextFactory<AppDbContext> _contextFactory;
+    private readonly IAuthService _authService;
 
-    public ValidadeService(IDbContextFactory<AppDbContext> contextFactory)
+    public ValidadeService(IDbContextFactory<AppDbContext> contextFactory, IAuthService authService)
     {
         _contextFactory = contextFactory;
+        _authService = authService;
+    }
+
+    public async Task<int> ObterContaIdAtualAsync()
+    {
+        try
+        {
+            var usuario = await _authService.ObterUsuarioLogadoAsync();
+            if (usuario != null && usuario.ContaId > 0)
+                return usuario.ContaId;
+        }
+        catch
+        {
+        }
+        return 1;
+    }
+
+    private async Task<int> ResolverContaIdAsync(int? contaId)
+    {
+        if (contaId.HasValue && contaId.Value > 0)
+            return contaId.Value;
+        return await ObterContaIdAtualAsync();
     }
 
     public async Task InicializarBancoESeedAsync()
     {
         await using var context = await _contextFactory.CreateDbContextAsync();
+        await context.Database.EnsureCreatedAsync();
 
         // Migração defensiva para bancos SQLite existentes
         try
@@ -26,217 +50,226 @@ public class ValidadeService : IValidadeService
             var conn = context.Database.GetDbConnection();
             await conn.OpenAsync();
 
-            using var cmdCheck = conn.CreateCommand();
-            cmdCheck.CommandText = "PRAGMA table_info(RegistrosValidade);";
-            using var reader = await cmdCheck.ExecuteReaderAsync();
-            var temLojaId = false;
-            var temTabela = false;
-            while (await reader.ReadAsync())
-            {
-                temTabela = true;
-                var col = reader.GetString(1);
-                if (col.Equals("LojaId", StringComparison.OrdinalIgnoreCase))
-                {
-                    temLojaId = true;
-                    break;
-                }
-            }
-            await reader.CloseAsync();
-
-            if (temTabela && !temLojaId)
-            {
-                using var cmdAlter = conn.CreateCommand();
-                cmdAlter.CommandText = @"
-                    ALTER TABLE RegistrosValidade ADD COLUMN LojaId INTEGER NOT NULL DEFAULT 1;
-                    UPDATE RegistrosValidade SET LojaId = (SELECT LojaId FROM Produtos WHERE Produtos.Id = RegistrosValidade.ProdutoId) WHERE EXISTS (SELECT 1 FROM Produtos WHERE Produtos.Id = RegistrosValidade.ProdutoId);
-                ";
-                await cmdAlter.ExecuteNonQueryAsync();
-            }
-
-            // 2. Migra Produtos para remover LojaId e FK legada caso a tabela antiga ainda possua essa coluna
-            using var cmdCheckProd = conn.CreateCommand();
-            cmdCheckProd.CommandText = "PRAGMA table_info(Produtos);";
-            using var readerProd = await cmdCheckProd.ExecuteReaderAsync();
-            var prodTemLojaId = false;
-            var temTabelaProd = false;
-            while (await readerProd.ReadAsync())
-            {
-                temTabelaProd = true;
-                var col = readerProd.GetString(1);
-                if (col.Equals("LojaId", StringComparison.OrdinalIgnoreCase))
-                {
-                    prodTemLojaId = true;
-                    break;
-                }
-            }
-            await readerProd.CloseAsync();
-
-            if (temTabelaProd && prodTemLojaId)
-            {
-                using var cmdMigrateProd = conn.CreateCommand();
-                cmdMigrateProd.CommandText = @"
-                    PRAGMA foreign_keys=OFF;
-
-                    CREATE TABLE ""Produtos_new"" (
-                        ""Id"" INTEGER NOT NULL CONSTRAINT ""PK_Produtos"" PRIMARY KEY AUTOINCREMENT,
-                        ""CodigoBarras"" TEXT NOT NULL,
-                        ""Nome"" TEXT NOT NULL
-                    );
-
-                    INSERT INTO ""Produtos_new"" (""Id"", ""CodigoBarras"", ""Nome"")
-                    SELECT ""Id"", ""CodigoBarras"", ""Nome"" FROM ""Produtos"";
-
-                    DROP TABLE ""Produtos"";
-
-                    ALTER TABLE ""Produtos_new"" RENAME TO ""Produtos"";
-
-                    CREATE UNIQUE INDEX IF NOT EXISTS ""IX_Produtos_CodigoBarras"" ON ""Produtos"" (""CodigoBarras"");
-
-                    PRAGMA foreign_keys=ON;
-                ";
-                await cmdMigrateProd.ExecuteNonQueryAsync();
-            }
-
-            // Criação defensiva da tabela Usuarios caso o banco SQLite já exista
-            using var cmdCreateUsers = conn.CreateCommand();
-            cmdCreateUsers.CommandText = @"
-                CREATE TABLE IF NOT EXISTS ""Usuarios"" (
+            // 1. Criação defensiva das tabelas Contas e MembrosTime
+            using var cmdCreateContas = conn.CreateCommand();
+            cmdCreateContas.CommandText = @"
+                CREATE TABLE IF NOT EXISTS ""Contas"" (
                     ""Id"" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
                     ""Nome"" TEXT NOT NULL,
+                    ""DonoUsuarioId"" INTEGER NOT NULL,
+                    ""DataCriacao"" TEXT NOT NULL
+                );
+                CREATE TABLE IF NOT EXISTS ""MembrosTime"" (
+                    ""Id"" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+                    ""ContaId"" INTEGER NOT NULL,
                     ""Email"" TEXT NOT NULL,
-                    ""SenhaHash"" TEXT NOT NULL,
-                    ""SenhaSalt"" TEXT NOT NULL,
-                    ""EmailConfirmado"" INTEGER NOT NULL,
-                    ""TokenConfirmacao"" TEXT NULL,
-                    ""CodigoConfirmacao"" TEXT NULL,
-                    ""TokenExpiracao"" TEXT NULL,
-                    ""TokenRedefinicaoSenha"" TEXT NULL,
-                    ""CodigoRedefinicaoSenha"" TEXT NULL,
-                    ""TokenRedefinicaoExpiracao"" TEXT NULL,
-                    ""DataCriacao"" TEXT NOT NULL,
-                    ""UltimoAcesso"" TEXT NULL,
+                    ""Nome"" TEXT NOT NULL,
+                    ""Papel"" TEXT NOT NULL,
+                    ""DataAdicao"" TEXT NOT NULL,
+                    ""AdicionadoPorUsuarioId"" INTEGER NULL,
                     ""Ativo"" INTEGER NOT NULL
                 );
-                CREATE UNIQUE INDEX IF NOT EXISTS ""IX_Usuarios_Email"" ON ""Usuarios"" (""Email"");
+                CREATE INDEX IF NOT EXISTS ""IX_MembrosTime_ContaId"" ON ""MembrosTime"" (""ContaId"");
+                CREATE INDEX IF NOT EXISTS ""IX_MembrosTime_Email"" ON ""MembrosTime"" (""Email"");
             ";
-            await cmdCreateUsers.ExecuteNonQueryAsync();
+            await cmdCreateContas.ExecuteNonQueryAsync();
 
-            // Migração de colunas de redefinição de senha caso a tabela Usuarios já tenha sido criada anteriormente
-            using var cmdCheckUserCols = conn.CreateCommand();
-            cmdCheckUserCols.CommandText = "PRAGMA table_info(Usuarios);";
-            using var readerUsers = await cmdCheckUserCols.ExecuteReaderAsync();
-            var temTokenRedef = false;
-            while (await readerUsers.ReadAsync())
+            // 2. Garante coluna ContaId em todas as tabelas principais
+            async Task GarantirColunaContaIdAsync(string tabela)
             {
-                var col = readerUsers.GetString(1);
-                if (col.Equals("TokenRedefinicaoSenha", StringComparison.OrdinalIgnoreCase))
+                using var cmd = conn.CreateCommand();
+                cmd.CommandText = $"PRAGMA table_info({tabela});";
+                using var r = await cmd.ExecuteReaderAsync();
+                var temContaId = false;
+                var temTab = false;
+                while (await r.ReadAsync())
                 {
-                    temTokenRedef = true;
-                    break;
-                }
-            }
-            await readerUsers.CloseAsync();
-
-            if (!temTokenRedef)
-            {
-                using var cmdAlterUsers = conn.CreateCommand();
-                cmdAlterUsers.CommandText = @"
-                    ALTER TABLE Usuarios ADD COLUMN TokenRedefinicaoSenha TEXT NULL;
-                    ALTER TABLE Usuarios ADD COLUMN CodigoRedefinicaoSenha TEXT NULL;
-                    ALTER TABLE Usuarios ADD COLUMN TokenRedefinicaoExpiracao TEXT NULL;
-                ";
-                await cmdAlterUsers.ExecuteNonQueryAsync();
-            }
-        }
-        catch
-        {
-        }
-
-        await context.Database.EnsureCreatedAsync();
-
-        // Deduplica produtos caso existam produtos com mesmo CodigoBarras para lojas diferentes
-        try
-        {
-            var produtos = await context.Produtos.ToListAsync();
-            var grupos = produtos.GroupBy(p => p.CodigoBarras).Where(g => g.Count() > 1).ToList();
-            foreach (var g in grupos)
-            {
-                var principal = g.First();
-                var repetidos = g.Skip(1).ToList();
-                foreach (var rep in repetidos)
-                {
-                    var validades = await context.RegistrosValidade.Where(r => r.ProdutoId == rep.Id).ToListAsync();
-                    foreach (var v in validades)
+                    temTab = true;
+                    var col = r.GetString(1);
+                    if (col.Equals("ContaId", StringComparison.OrdinalIgnoreCase))
                     {
-                        v.ProdutoId = principal.Id;
+                        temContaId = true;
+                        break;
                     }
-                    context.Produtos.Remove(rep);
+                }
+                await r.CloseAsync();
+
+                if (temTab && !temContaId)
+                {
+                    using var cmdAlt = conn.CreateCommand();
+                    cmdAlt.CommandText = $"ALTER TABLE {tabela} ADD COLUMN ContaId INTEGER NOT NULL DEFAULT 1;";
+                    await cmdAlt.ExecuteNonQueryAsync();
                 }
             }
-            await context.SaveChangesAsync();
+
+            await GarantirColunaContaIdAsync("Usuarios");
+            await GarantirColunaContaIdAsync("Lojas");
+            await GarantirColunaContaIdAsync("Produtos");
+            await GarantirColunaContaIdAsync("RegistrosValidade");
+
+            // 3. Atualiza índice único de produtos para ser por (ContaId, CodigoBarras)
+            using var cmdCheckProdTable = conn.CreateCommand();
+            cmdCheckProdTable.CommandText = "SELECT 1 FROM sqlite_master WHERE type='table' AND name='Produtos';";
+            var prodExiste = await cmdCheckProdTable.ExecuteScalarAsync();
+
+            if (prodExiste != null)
+            {
+                using var cmdIndexProd = conn.CreateCommand();
+                cmdIndexProd.CommandText = @"
+                    DROP INDEX IF EXISTS ""IX_Produtos_CodigoBarras"";
+                    CREATE UNIQUE INDEX IF NOT EXISTS ""IX_Produtos_ContaId_CodigoBarras"" ON ""Produtos"" (""ContaId"", ""CodigoBarras"");
+                ";
+                await cmdIndexProd.ExecuteNonQueryAsync();
+            }
+
+            // 4. Garante que dados legados anteriores à migração pertençam à Conta 1
+            using var cmdContaPadrao = conn.CreateCommand();
+            cmdContaPadrao.CommandText = @"
+                INSERT INTO Contas (Id, Nome, DonoUsuarioId, DataCriacao)
+                SELECT 1, 'Conta Principal', 1, strftime('%Y-%m-%d %H:%M:%S', 'now')
+                WHERE NOT EXISTS (SELECT 1 FROM Contas WHERE Id = 1);
+
+                UPDATE Lojas SET ContaId = 1 WHERE ContaId = 0;
+                UPDATE Produtos SET ContaId = 1 WHERE ContaId = 0;
+                UPDATE RegistrosValidade SET ContaId = 1 WHERE ContaId = 0;
+                UPDATE Usuarios SET ContaId = 1 WHERE ContaId = 0;
+            ";
+            await cmdContaPadrao.ExecuteNonQueryAsync();
         }
         catch
         {
         }
 
-        // Carga inicial (Seed) caso o banco esteja vazio
-        if (!await context.Lojas.AnyAsync())
+        // ATENÇÃO: NÃO SEEDAR LOJAS OU PRODUTOS AUTOMATICAMENTE!
+        // Novos usuários cadastrados na tela de início devem iniciar 100% do zero.
+    }
+
+    // ==========================================
+    // GESTÃO DE TIMES E CONTA
+    // ==========================================
+
+    public async Task<Conta?> ObterContaAtualAsync(int? contaId = null)
+    {
+        var cid = await ResolverContaIdAsync(contaId);
+        await using var context = await _contextFactory.CreateDbContextAsync();
+        return await context.Contas.FirstOrDefaultAsync(c => c.Id == cid);
+    }
+
+    public async Task<List<MembroTime>> GetMembrosTimeAsync(int? contaId = null)
+    {
+        var cid = await ResolverContaIdAsync(contaId);
+        await using var context = await _contextFactory.CreateDbContextAsync();
+        return await context.MembrosTime
+            .Where(m => m.ContaId == cid && m.Ativo)
+            .OrderBy(m => m.DataAdicao)
+            .ToListAsync();
+    }
+
+    public async Task<MembroTime> AdicionarMembroTimeAsync(string email, string nome, string papel, int? contaId = null)
+    {
+        var cid = await ResolverContaIdAsync(contaId);
+        email = email.Trim().ToLowerInvariant();
+        await using var context = await _contextFactory.CreateDbContextAsync();
+
+        var existente = await context.MembrosTime.FirstOrDefaultAsync(m => m.ContaId == cid && m.Email == email);
+        if (existente != null)
         {
-            var loja1 = new Loja { Nome = "Loja 01 - Centro", CodigoLoja = "LJ-01" };
-            var loja2 = new Loja { Nome = "Loja 02 - Zona Sul", CodigoLoja = "LJ-02" };
-            context.Lojas.AddRange(loja1, loja2);
+            existente.Ativo = true;
+            existente.Nome = string.IsNullOrWhiteSpace(nome) ? existente.Nome : nome.Trim();
+            existente.Papel = string.IsNullOrWhiteSpace(papel) ? "Colaborador" : papel.Trim();
             await context.SaveChangesAsync();
-
-            var hoje = DateTime.Today;
-
-            var p1 = new Produto { CodigoBarras = "7891000100101", Nome = "Iogurte Natural 170g" };
-            var p2 = new Produto { CodigoBarras = "7891000200202", Nome = "Queijo Mussarela Fatiado 500g" };
-            var p3 = new Produto { CodigoBarras = "7891000300303", Nome = "Pão de Forma Tradicional 400g" };
-            var p4 = new Produto { CodigoBarras = "7891000400404", Nome = "Presunto Cozido 200g" };
-            var p5 = new Produto { CodigoBarras = "7891000500505", Nome = "Leite Longa Vida 1L" };
-
-            context.Produtos.AddRange(p1, p2, p3, p4, p5);
-            await context.SaveChangesAsync();
-
-            var validades = new List<RegistroValidade>
-            {
-                new() { ProdutoId = p4.Id, LojaId = loja1.Id, DataColeta = hoje, DataValidade = hoje.AddDays(-3), EmPromocao = false, Status = "Ativo" },
-                new() { ProdutoId = p1.Id, LojaId = loja1.Id, DataColeta = hoje, DataValidade = hoje.AddDays(4), EmPromocao = true, Status = "Ativo" },
-                new() { ProdutoId = p2.Id, LojaId = loja1.Id, DataColeta = hoje, DataValidade = hoje.AddDays(9), EmPromocao = false, Status = "Ativo" },
-                new() { ProdutoId = p3.Id, LojaId = loja1.Id, DataColeta = hoje, DataValidade = hoje.AddDays(14), EmPromocao = false, Status = "Ativo" },
-                new() { ProdutoId = p5.Id, LojaId = loja2.Id, DataColeta = hoje, DataValidade = hoje.AddDays(45), EmPromocao = false, Status = "Ativo" },
-                new() { ProdutoId = p2.Id, LojaId = loja1.Id, DataColeta = hoje.AddDays(-7), DataValidade = hoje.AddDays(-5), EmPromocao = true, Status = "Baixado", DataBaixa = DateTime.Now.AddDays(-1), MotivoBaixa = "Descarte/Vencido" }
-            };
-
-            context.RegistrosValidade.AddRange(validades);
-            await context.SaveChangesAsync();
+            return existente;
         }
+
+        var usuarioLogado = await _authService.ObterUsuarioLogadoAsync();
+        var novo = new MembroTime
+        {
+            ContaId = cid,
+            Email = email,
+            Nome = string.IsNullOrWhiteSpace(nome) ? email : nome.Trim(),
+            Papel = string.IsNullOrWhiteSpace(papel) ? "Colaborador" : papel.Trim(),
+            DataAdicao = DateTime.Now,
+            AdicionadoPorUsuarioId = usuarioLogado?.Id,
+            Ativo = true
+        };
+        context.MembrosTime.Add(novo);
+
+        // Se o usuário do e-mail já estiver cadastrado no sistema, associa ele à conta do time
+        var usuarioExistente = await context.Usuarios.FirstOrDefaultAsync(u => u.Email == email);
+        if (usuarioExistente != null)
+        {
+            usuarioExistente.ContaId = cid;
+        }
+
+        await context.SaveChangesAsync();
+        return novo;
     }
 
-    public async Task<List<Loja>> GetLojasAsync()
+    public async Task<bool> RemoverMembroTimeAsync(int membroId, int? contaId = null)
     {
+        var cid = await ResolverContaIdAsync(contaId);
         await using var context = await _contextFactory.CreateDbContextAsync();
-        return await context.Lojas.OrderBy(l => l.Nome).ToListAsync();
+
+        var membro = await context.MembrosTime.FirstOrDefaultAsync(m => m.Id == membroId && m.ContaId == cid);
+        if (membro == null) return false;
+
+        // Se o usuário já possuir cadastro, devolve para uma conta própria individual isolada
+        var usuario = await context.Usuarios.FirstOrDefaultAsync(u => u.Email == membro.Email);
+        if (usuario != null && usuario.ContaId == cid)
+        {
+            var novaConta = new Conta
+            {
+                Nome = $"Conta de {usuario.Nome}",
+                DonoUsuarioId = usuario.Id,
+                DataCriacao = DateTime.Now
+            };
+            context.Contas.Add(novaConta);
+            await context.SaveChangesAsync();
+
+            usuario.ContaId = novaConta.Id;
+        }
+
+        context.MembrosTime.Remove(membro);
+        await context.SaveChangesAsync();
+        return true;
     }
 
-    public async Task<Loja?> GetLojaPorIdAsync(int id)
+    // ==========================================
+    // GESTÃO DE LOJAS
+    // ==========================================
+
+    public async Task<List<Loja>> GetLojasAsync(int? contaId = null)
     {
+        var cid = await ResolverContaIdAsync(contaId);
         await using var context = await _contextFactory.CreateDbContextAsync();
-        return await context.Lojas.FindAsync(id);
+        return await context.Lojas
+            .Where(l => l.ContaId == cid)
+            .OrderBy(l => l.Nome)
+            .ToListAsync();
     }
 
-    public async Task<Loja> CriarLojaAsync(Loja loja)
+    public async Task<Loja?> GetLojaPorIdAsync(int id, int? contaId = null)
     {
+        var cid = await ResolverContaIdAsync(contaId);
         await using var context = await _contextFactory.CreateDbContextAsync();
+        return await context.Lojas.FirstOrDefaultAsync(l => l.Id == id && l.ContaId == cid);
+    }
+
+    public async Task<Loja> CriarLojaAsync(Loja loja, int? contaId = null)
+    {
+        var cid = await ResolverContaIdAsync(contaId);
+        await using var context = await _contextFactory.CreateDbContextAsync();
+        loja.ContaId = cid;
         context.Lojas.Add(loja);
         await context.SaveChangesAsync();
         return loja;
     }
 
-    public async Task<Loja?> AtualizarLojaAsync(int id, string nome, string codigoLoja)
+    public async Task<Loja?> AtualizarLojaAsync(int id, string nome, string codigoLoja, int? contaId = null)
     {
+        var cid = await ResolverContaIdAsync(contaId);
         await using var context = await _contextFactory.CreateDbContextAsync();
-        var loja = await context.Lojas.FindAsync(id);
+        var loja = await context.Lojas.FirstOrDefaultAsync(l => l.Id == id && l.ContaId == cid);
         if (loja != null)
         {
             loja.Nome = nome.Trim();
@@ -246,50 +279,61 @@ public class ValidadeService : IValidadeService
         return loja;
     }
 
-    public async Task ExcluirLojaAsync(int id)
+    public async Task ExcluirLojaAsync(int id, int? contaId = null)
     {
+        var cid = await ResolverContaIdAsync(contaId);
         await using var context = await _contextFactory.CreateDbContextAsync();
-        var loja = await context.Lojas.FindAsync(id);
+        var loja = await context.Lojas.FirstOrDefaultAsync(l => l.Id == id && l.ContaId == cid);
         if (loja != null)
         {
+            var validades = await context.RegistrosValidade.Where(r => r.LojaId == id && r.ContaId == cid).ToListAsync();
+            context.RegistrosValidade.RemoveRange(validades);
             context.Lojas.Remove(loja);
             await context.SaveChangesAsync();
         }
     }
 
-    public async Task<Produto?> BuscarProdutoPorCodigoBarrasAsync(string codigoBarras)
+    // ==========================================
+    // COLETA E PRODUTOS (CATÁLOGO POR CONTA)
+    // ==========================================
+
+    public async Task<Produto?> BuscarProdutoPorCodigoBarrasAsync(string codigoBarras, int? contaId = null)
     {
+        var cid = await ResolverContaIdAsync(contaId);
         await using var context = await _contextFactory.CreateDbContextAsync();
         var codigoTratado = codigoBarras.Trim();
 
         return await context.Produtos
-            .Include(p => p.Validades.Where(v => v.Status == "Ativo"))
+            .Include(p => p.Validades.Where(v => v.Status == "Ativo" && v.ContaId == cid))
                 .ThenInclude(v => v.Loja)
-            .FirstOrDefaultAsync(p => p.CodigoBarras == codigoTratado);
+            .FirstOrDefaultAsync(p => p.ContaId == cid && p.CodigoBarras == codigoTratado);
     }
 
-    public async Task<List<RegistroValidade>> GetValidadesAtivasDoProdutoNaLojaAsync(int produtoId, int lojaId)
+    public async Task<List<RegistroValidade>> GetValidadesAtivasDoProdutoNaLojaAsync(int produtoId, int lojaId, int? contaId = null)
     {
+        var cid = await ResolverContaIdAsync(contaId);
         await using var context = await _contextFactory.CreateDbContextAsync();
         return await context.RegistrosValidade
             .Include(r => r.Loja)
             .Include(r => r.Produto)
-            .Where(r => r.ProdutoId == produtoId && r.LojaId == lojaId && r.Status == "Ativo")
+            .Where(r => r.ContaId == cid && r.ProdutoId == produtoId && r.LojaId == lojaId && r.Status == "Ativo")
             .OrderBy(r => r.DataValidade)
             .ToListAsync();
     }
 
-    public async Task<Produto> CadastrarProdutoComValidadeAsync(int lojaId, string codigoBarras, string nome, DateTime dataValidade, bool emPromocao)
+    public async Task<Produto> CadastrarProdutoComValidadeAsync(int lojaId, string codigoBarras, string nome, DateTime dataValidade, bool emPromocao, int? contaId = null)
     {
+        var cid = await ResolverContaIdAsync(contaId);
         await using var context = await _contextFactory.CreateDbContextAsync();
         var codigoTratado = codigoBarras.Trim();
 
-        var produto = await context.Produtos.FirstOrDefaultAsync(p => p.CodigoBarras == codigoTratado);
+        var produto = await context.Produtos.FirstOrDefaultAsync(p => p.ContaId == cid && p.CodigoBarras == codigoTratado);
 
         if (produto == null)
         {
             produto = new Produto
             {
+                ContaId = cid,
                 CodigoBarras = codigoTratado,
                 Nome = nome.Trim()
             };
@@ -304,6 +348,7 @@ public class ValidadeService : IValidadeService
 
         var registro = new RegistroValidade
         {
+            ContaId = cid,
             ProdutoId = produto.Id,
             LojaId = lojaId,
             DataColeta = DateTime.Today,
@@ -315,20 +360,22 @@ public class ValidadeService : IValidadeService
         context.RegistrosValidade.Add(registro);
         await context.SaveChangesAsync();
 
-        return (await BuscarProdutoPorCodigoBarrasAsync(codigoTratado))!;
+        return (await BuscarProdutoPorCodigoBarrasAsync(codigoTratado, cid))!;
     }
 
-    public async Task<Produto> CadastrarProdutoComValidadeMultiplasLojasAsync(IEnumerable<int> lojasIds, string codigoBarras, string nome, DateTime dataValidade, bool emPromocao)
+    public async Task<Produto> CadastrarProdutoComValidadeMultiplasLojasAsync(IEnumerable<int> lojasIds, string codigoBarras, string nome, DateTime dataValidade, bool emPromocao, int? contaId = null)
     {
+        var cid = await ResolverContaIdAsync(contaId);
         await using var context = await _contextFactory.CreateDbContextAsync();
         var codigoTratado = codigoBarras.Trim();
 
-        var produto = await context.Produtos.FirstOrDefaultAsync(p => p.CodigoBarras == codigoTratado);
+        var produto = await context.Produtos.FirstOrDefaultAsync(p => p.ContaId == cid && p.CodigoBarras == codigoTratado);
 
         if (produto == null)
         {
             produto = new Produto
             {
+                ContaId = cid,
                 CodigoBarras = codigoTratado,
                 Nome = nome.Trim()
             };
@@ -344,6 +391,7 @@ public class ValidadeService : IValidadeService
         foreach (var lojaId in lojasIds.Distinct())
         {
             var jaExiste = await context.RegistrosValidade.AnyAsync(r => 
+                r.ContaId == cid &&
                 r.ProdutoId == produto.Id && 
                 r.LojaId == lojaId && 
                 r.DataValidade == dataValidade.Date && 
@@ -353,6 +401,7 @@ public class ValidadeService : IValidadeService
             {
                 context.RegistrosValidade.Add(new RegistroValidade
                 {
+                    ContaId = cid,
                     ProdutoId = produto.Id,
                     LojaId = lojaId,
                     DataColeta = DateTime.Today,
@@ -364,14 +413,16 @@ public class ValidadeService : IValidadeService
         }
 
         await context.SaveChangesAsync();
-        return (await BuscarProdutoPorCodigoBarrasAsync(codigoTratado))!;
+        return (await BuscarProdutoPorCodigoBarrasAsync(codigoTratado, cid))!;
     }
 
-    public async Task<RegistroValidade> AdicionarValidadeAoProdutoAsync(int produtoId, int lojaId, DateTime dataValidade, bool emPromocao)
+    public async Task<RegistroValidade> AdicionarValidadeAoProdutoAsync(int produtoId, int lojaId, DateTime dataValidade, bool emPromocao, int? contaId = null)
     {
+        var cid = await ResolverContaIdAsync(contaId);
         await using var context = await _contextFactory.CreateDbContextAsync();
         var registro = new RegistroValidade
         {
+            ContaId = cid,
             ProdutoId = produtoId,
             LojaId = lojaId,
             DataColeta = DateTime.Today,
@@ -385,14 +436,16 @@ public class ValidadeService : IValidadeService
         return registro;
     }
 
-    public async Task<List<RegistroValidade>> AdicionarValidadeMultiplasLojasAsync(int produtoId, IEnumerable<int> lojasIds, DateTime dataValidade, bool emPromocao)
+    public async Task<List<RegistroValidade>> AdicionarValidadeMultiplasLojasAsync(int produtoId, IEnumerable<int> lojasIds, DateTime dataValidade, bool emPromocao, int? contaId = null)
     {
+        var cid = await ResolverContaIdAsync(contaId);
         await using var context = await _contextFactory.CreateDbContextAsync();
         var novosRegistros = new List<RegistroValidade>();
 
         foreach (var lojaId in lojasIds.Distinct())
         {
             var jaExiste = await context.RegistrosValidade.AnyAsync(r =>
+                r.ContaId == cid &&
                 r.ProdutoId == produtoId &&
                 r.LojaId == lojaId &&
                 r.DataValidade == dataValidade.Date &&
@@ -402,6 +455,7 @@ public class ValidadeService : IValidadeService
             {
                 var reg = new RegistroValidade
                 {
+                    ContaId = cid,
                     ProdutoId = produtoId,
                     LojaId = lojaId,
                     DataColeta = DateTime.Today,
@@ -418,10 +472,11 @@ public class ValidadeService : IValidadeService
         return novosRegistros;
     }
 
-    public async Task AtualizarNomeProdutoAsync(int produtoId, string novoNome)
+    public async Task AtualizarNomeProdutoAsync(int produtoId, string novoNome, int? contaId = null)
     {
+        var cid = await ResolverContaIdAsync(contaId);
         await using var context = await _contextFactory.CreateDbContextAsync();
-        var p = await context.Produtos.FindAsync(produtoId);
+        var p = await context.Produtos.FirstOrDefaultAsync(prod => prod.Id == produtoId && prod.ContaId == cid);
         if (p != null && !string.IsNullOrWhiteSpace(novoNome))
         {
             p.Nome = novoNome.Trim();
@@ -429,14 +484,19 @@ public class ValidadeService : IValidadeService
         }
     }
 
-    public async Task<List<RegistroValidade>> GetValidadesAtivasAsync(int? lojaId, string filtroRapido, DateTime? dataInicio = null, DateTime? dataFim = null)
+    // ==========================================
+    // MONITORAMENTO
+    // ==========================================
+
+    public async Task<List<RegistroValidade>> GetValidadesAtivasAsync(int? lojaId, string filtroRapido, DateTime? dataInicio = null, DateTime? dataFim = null, int? contaId = null)
     {
+        var cid = await ResolverContaIdAsync(contaId);
         await using var context = await _contextFactory.CreateDbContextAsync();
 
         var query = context.RegistrosValidade
             .Include(r => r.Produto)
             .Include(r => r.Loja)
-            .Where(r => r.Status == "Ativo");
+            .Where(r => r.ContaId == cid && r.Status == "Ativo");
 
         if (lojaId.HasValue && lojaId.Value > 0)
         {
@@ -459,10 +519,11 @@ public class ValidadeService : IValidadeService
         return await query.OrderBy(r => r.DataValidade).ToListAsync();
     }
 
-    public async Task AlternarPromocaoAsync(int validadeId, bool emPromocao)
+    public async Task AlternarPromocaoAsync(int validadeId, bool emPromocao, int? contaId = null)
     {
+        var cid = await ResolverContaIdAsync(contaId);
         await using var context = await _contextFactory.CreateDbContextAsync();
-        var reg = await context.RegistrosValidade.FindAsync(validadeId);
+        var reg = await context.RegistrosValidade.FirstOrDefaultAsync(r => r.Id == validadeId && r.ContaId == cid);
         if (reg != null)
         {
             reg.EmPromocao = emPromocao;
@@ -470,10 +531,11 @@ public class ValidadeService : IValidadeService
         }
     }
 
-    public async Task DarBaixaAsync(int validadeId, string motivo)
+    public async Task DarBaixaAsync(int validadeId, string motivo, int? contaId = null)
     {
+        var cid = await ResolverContaIdAsync(contaId);
         await using var context = await _contextFactory.CreateDbContextAsync();
-        var reg = await context.RegistrosValidade.FindAsync(validadeId);
+        var reg = await context.RegistrosValidade.FirstOrDefaultAsync(r => r.Id == validadeId && r.ContaId == cid);
         if (reg != null)
         {
             reg.Status = "Baixado";
@@ -483,10 +545,11 @@ public class ValidadeService : IValidadeService
         }
     }
 
-    public async Task DesfazerBaixaAsync(int validadeId)
+    public async Task DesfazerBaixaAsync(int validadeId, int? contaId = null)
     {
+        var cid = await ResolverContaIdAsync(contaId);
         await using var context = await _contextFactory.CreateDbContextAsync();
-        var reg = await context.RegistrosValidade.FindAsync(validadeId);
+        var reg = await context.RegistrosValidade.FirstOrDefaultAsync(r => r.Id == validadeId && r.ContaId == cid);
         if (reg != null)
         {
             reg.Status = "Ativo";
@@ -496,14 +559,15 @@ public class ValidadeService : IValidadeService
         }
     }
 
-    public async Task<List<RegistroValidade>> GetHistoricoBaixasAsync(int? lojaId, DateTime? dataInicio = null, DateTime? dataFim = null, string? motivo = null)
+    public async Task<List<RegistroValidade>> GetHistoricoBaixasAsync(int? lojaId, DateTime? dataInicio = null, DateTime? dataFim = null, string? motivo = null, int? contaId = null)
     {
+        var cid = await ResolverContaIdAsync(contaId);
         await using var context = await _contextFactory.CreateDbContextAsync();
 
         var query = context.RegistrosValidade
             .Include(r => r.Produto)
             .Include(r => r.Loja)
-            .Where(r => r.Status == "Baixado");
+            .Where(r => r.ContaId == cid && r.Status == "Baixado");
 
         if (lojaId.HasValue && lojaId.Value > 0)
         {
@@ -562,8 +626,9 @@ public class ValidadeService : IValidadeService
         return tratado;
     }
 
-    public async Task<List<ItemImportacaoPlanilha>> ProcessarPreviaPlanilhaAsync(Stream stream, string nomeArquivo, int lojaDestinoId)
+    public async Task<List<ItemImportacaoPlanilha>> ProcessarPreviaPlanilhaAsync(Stream stream, string nomeArquivo, int lojaDestinoId, int? contaId = null)
     {
+        var cid = await ResolverContaIdAsync(contaId);
         using var ms = new MemoryStream();
         await stream.CopyToAsync(ms);
         ms.Position = 0;
@@ -631,11 +696,12 @@ public class ValidadeService : IValidadeService
 
         await using var context = await _contextFactory.CreateDbContextAsync();
         var produtosExistentes = await context.Produtos
+            .Where(p => p.ContaId == cid)
             .Select(p => new { p.Id, p.CodigoBarras })
             .ToDictionaryAsync(p => p.CodigoBarras, p => p.Id);
 
         var validadesExistentes = await context.RegistrosValidade
-            .Where(v => v.LojaId == lojaDestinoId && v.Status == "Ativo")
+            .Where(v => v.ContaId == cid && v.LojaId == lojaDestinoId && v.Status == "Ativo")
             .Select(v => new { v.ProdutoId, v.DataValidade })
             .ToListAsync();
 
@@ -721,8 +787,9 @@ public class ValidadeService : IValidadeService
         return itens;
     }
 
-    public async Task<ResultadoImportacao> ExecutarImportacaoAsync(int lojaDestinoId, List<ItemImportacaoPlanilha> itens)
+    public async Task<ResultadoImportacao> ExecutarImportacaoAsync(int lojaDestinoId, List<ItemImportacaoPlanilha> itens, int? contaId = null)
     {
+        var cid = await ResolverContaIdAsync(contaId);
         var resultado = new ResultadoImportacao
         {
             TotalLidos = itens.Count
@@ -741,7 +808,7 @@ public class ValidadeService : IValidadeService
 
         await using var context = await _contextFactory.CreateDbContextAsync();
 
-        // Identifica e cria produtos no catálogo compartilhado em lotes (evitando limite de parâmetros do SQLite)
+        // Identifica e cria produtos no catálogo da conta em lotes (evitando limite de parâmetros do SQLite)
         var codigos = itensValidos
             .Select(i => (i.CodigoBarras ?? string.Empty).Trim())
             .Where(c => !string.IsNullOrEmpty(c))
@@ -754,7 +821,7 @@ public class ValidadeService : IValidadeService
         {
             var chunkList = chunk.ToList();
             var doBanco = await context.Produtos
-                .Where(p => chunkList.Contains(p.CodigoBarras))
+                .Where(p => p.ContaId == cid && chunkList.Contains(p.CodigoBarras))
                 .ToListAsync();
 
             foreach (var p in doBanco)
@@ -779,6 +846,7 @@ public class ValidadeService : IValidadeService
             {
                 produto = new Produto
                 {
+                    ContaId = cid,
                     CodigoBarras = codLimpo,
                     Nome = string.IsNullOrEmpty(nomeLimpo) ? $"Produto {codLimpo}" : nomeLimpo
                 };
@@ -807,7 +875,7 @@ public class ValidadeService : IValidadeService
         {
             var chunkList = chunk.ToList();
             var validadesExistentes = await context.RegistrosValidade
-                .Where(v => v.LojaId == lojaDestinoId && chunkList.Contains(v.ProdutoId) && v.Status == "Ativo")
+                .Where(v => v.ContaId == cid && v.LojaId == lojaDestinoId && chunkList.Contains(v.ProdutoId) && v.Status == "Ativo")
                 .Select(v => new { v.ProdutoId, v.DataValidade })
                 .ToListAsync();
 
@@ -833,6 +901,7 @@ public class ValidadeService : IValidadeService
 
             context.RegistrosValidade.Add(new RegistroValidade
             {
+                ContaId = cid,
                 ProdutoId = produto.Id,
                 LojaId = lojaDestinoId,
                 DataColeta = hoje, // Fixada com a data de hoje!

@@ -53,6 +53,7 @@ public class AuthService : IAuthService
                     var usuario = await db.Usuarios.FirstOrDefaultAsync(u => u.Id == sessao.UsuarioId && u.Ativo);
                     if (usuario != null)
                     {
+                        await GarantirContaDoUsuarioAsync(db, usuario);
                         _usuarioLogado = usuario;
                         return _usuarioLogado;
                     }
@@ -65,6 +66,36 @@ public class AuthService : IAuthService
         }
 
         return null;
+    }
+
+    private async Task GarantirContaDoUsuarioAsync(AppDbContext db, Usuario usuario)
+    {
+        if (usuario.ContaId > 0)
+        {
+            var contaExiste = await db.Contas.AnyAsync(c => c.Id == usuario.ContaId);
+            if (contaExiste) return;
+        }
+
+        var emailNorm = usuario.Email.Trim().ToLowerInvariant();
+        var convite = await db.MembrosTime.FirstOrDefaultAsync(m => m.Email == emailNorm && m.Ativo);
+        if (convite != null && convite.ContaId > 0)
+        {
+            usuario.ContaId = convite.ContaId;
+            await db.SaveChangesAsync();
+            return;
+        }
+
+        var novaConta = new Conta
+        {
+            Nome = $"Conta de {usuario.Nome}",
+            DonoUsuarioId = usuario.Id,
+            DataCriacao = DateTime.Now
+        };
+        db.Contas.Add(novaConta);
+        await db.SaveChangesAsync();
+
+        usuario.ContaId = novaConta.Id;
+        await db.SaveChangesAsync();
     }
 
     public async Task<ResultadoAuth> LoginAsync(string email, string senha)
@@ -94,6 +125,8 @@ public class AuthService : IAuthService
                     "Seu e-mail ainda não foi confirmado. Por favor, valide o código ou link enviado para sua caixa de entrada.",
                     requerConfirmacao: true);
             }
+
+            await GarantirContaDoUsuarioAsync(db, usuario);
 
             usuario.UltimoAcesso = DateTime.Now;
             await db.SaveChangesAsync();
@@ -147,6 +180,11 @@ public class AuthService : IAuthService
                     existente.CodigoConfirmacao = Random.Shared.Next(100000, 999999).ToString();
                     existente.TokenExpiracao = DateTime.Now.AddHours(24);
 
+                    if (existente.ContaId <= 0)
+                    {
+                        await GarantirContaDoUsuarioAsync(db, existente);
+                    }
+
                     await db.SaveChangesAsync();
 
                     var linkExistente = $"{baseUrl.TrimEnd('/')}/confirmar-email?token={existente.TokenConfirmacao}";
@@ -165,10 +203,34 @@ public class AuthService : IAuthService
             var token = Guid.NewGuid().ToString("N");
             var codigo = Random.Shared.Next(100000, 999999).ToString();
 
+            // Verifica se o e-mail foi convidado para algum Time existente
+            var convite = await db.MembrosTime.FirstOrDefaultAsync(m => m.Email == email && m.Ativo);
+            int contaId = 0;
+            Conta? novaContaCriada = null;
+
+            if (convite != null && convite.ContaId > 0)
+            {
+                contaId = convite.ContaId;
+            }
+            else
+            {
+                // Inicia conta própria do zero (sem dados)
+                novaContaCriada = new Conta
+                {
+                    Nome = $"Conta de {nome}",
+                    DonoUsuarioId = 0,
+                    DataCriacao = DateTime.Now
+                };
+                db.Contas.Add(novaContaCriada);
+                await db.SaveChangesAsync();
+                contaId = novaContaCriada.Id;
+            }
+
             var novoUsuario = new Usuario
             {
                 Nome = nome,
                 Email = email,
+                ContaId = contaId,
                 SenhaHash = novoHash,
                 SenhaSalt = novoSalt,
                 EmailConfirmado = false,
@@ -181,6 +243,12 @@ public class AuthService : IAuthService
 
             db.Usuarios.Add(novoUsuario);
             await db.SaveChangesAsync();
+
+            if (novaContaCriada != null)
+            {
+                novaContaCriada.DonoUsuarioId = novoUsuario.Id;
+                await db.SaveChangesAsync();
+            }
 
             var link = $"{baseUrl.TrimEnd('/')}/confirmar-email?token={token}";
             await _emailService.EnviarEmailConfirmacaoAsync(nome, email, link, codigo);
