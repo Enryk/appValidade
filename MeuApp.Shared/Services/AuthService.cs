@@ -345,6 +345,95 @@ public class AuthService : IAuthService
         await Task.CompletedTask;
     }
 
+    public async Task<ResultadoAuth> SolicitarRecuperacaoSenhaAsync(string email, string baseUrl = "")
+    {
+        if (string.IsNullOrWhiteSpace(email))
+            return ResultadoAuth.Falha("Informe o e-mail cadastrado.");
+
+        email = email.Trim().ToLowerInvariant();
+
+        try
+        {
+            await using var db = await _dbFactory.CreateDbContextAsync();
+            var usuario = await db.Usuarios.FirstOrDefaultAsync(u => u.Email == email);
+
+            if (usuario == null)
+            {
+                return ResultadoAuth.Ok(new Usuario { Email = email }, "Se este e-mail estiver cadastrado, enviamos as instruções de redefinição.");
+            }
+
+            if (!usuario.Ativo)
+                return ResultadoAuth.Falha("Esta conta está desativada.");
+
+            var token = Guid.NewGuid().ToString("N");
+            var codigo = Random.Shared.Next(100000, 999999).ToString();
+
+            usuario.TokenRedefinicaoSenha = token;
+            usuario.CodigoRedefinicaoSenha = codigo;
+            usuario.TokenRedefinicaoExpiracao = DateTime.Now.AddHours(2);
+
+            await db.SaveChangesAsync();
+
+            var link = $"{baseUrl.TrimEnd('/')}/redefinir-senha?token={token}";
+            await _emailService.EnviarEmailRecuperacaoSenhaAsync(usuario.Nome, usuario.Email, link, codigo);
+
+            var res = ResultadoAuth.Ok(usuario, "Código de redefinição enviado com sucesso para o seu e-mail!");
+            res.CodigoGeradoSimulacao = codigo;
+            res.LinkGeradoSimulacao = link;
+            return res;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Erro ao solicitar recuperação de senha.");
+            return ResultadoAuth.Falha("Ocorreu um erro ao processar a solicitação.");
+        }
+    }
+
+    public async Task<ResultadoAuth> RedefinirSenhaAsync(string tokenOuCodigo, string novaSenha)
+    {
+        if (string.IsNullOrWhiteSpace(tokenOuCodigo))
+            return ResultadoAuth.Falha("Código ou link de redefinição não informado.");
+
+        if (string.IsNullOrWhiteSpace(novaSenha) || novaSenha.Length < 6)
+            return ResultadoAuth.Falha("A nova senha deve ter no mínimo 6 caracteres.");
+
+        tokenOuCodigo = tokenOuCodigo.Trim();
+
+        try
+        {
+            await using var db = await _dbFactory.CreateDbContextAsync();
+            var usuario = await db.Usuarios.FirstOrDefaultAsync(u =>
+                (u.CodigoRedefinicaoSenha == tokenOuCodigo || u.TokenRedefinicaoSenha == tokenOuCodigo));
+
+            if (usuario == null)
+                return ResultadoAuth.Falha("Código ou link de redefinição inválido ou não encontrado.");
+
+            if (usuario.TokenRedefinicaoExpiracao.HasValue && usuario.TokenRedefinicaoExpiracao.Value < DateTime.Now)
+                return ResultadoAuth.Falha("Este código de redefinição já expirou. Solicite um novo.");
+
+            CriarHashSenha(novaSenha, out var novoHash, out var novoSalt);
+            usuario.SenhaHash = novoHash;
+            usuario.SenhaSalt = novoSalt;
+
+            usuario.TokenRedefinicaoSenha = null;
+            usuario.CodigoRedefinicaoSenha = null;
+            usuario.TokenRedefinicaoExpiracao = null;
+
+            usuario.EmailConfirmado = true;
+            usuario.TokenConfirmacao = null;
+            usuario.CodigoConfirmacao = null;
+
+            await db.SaveChangesAsync();
+
+            return ResultadoAuth.Ok(usuario, "Sua senha foi redefinida com sucesso! Você já pode fazer login.");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Erro ao redefinir senha.");
+            return ResultadoAuth.Falha("Erro ao salvar nova senha.");
+        }
+    }
+
     private async Task SalvarSessaoAsync(int usuarioId)
     {
         try

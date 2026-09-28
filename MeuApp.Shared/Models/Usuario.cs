@@ -15,6 +15,10 @@ public class Usuario
     public string? CodigoConfirmacao { get; set; }
     public DateTime? TokenExpiracao { get; set; }
     
+    public string? TokenRedefinicaoSenha { get; set; }
+    public string? CodigoRedefinicaoSenha { get; set; }
+    public DateTime? TokenRedefinicaoExpiracao { get; set; }
+    
     public DateTime DataCriacao { get; set; } = DateTime.Now;
     public DateTime? UltimoAcesso { get; set; }
     public bool Ativo { get; set; } = true;

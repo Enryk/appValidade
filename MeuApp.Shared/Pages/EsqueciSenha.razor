@@ -1,0 +1,144 @@
+@page "/esqueci-senha"
+@layout MeuApp.Shared.Layout.AuthLayout
+@inject IAuthService AuthService
+@inject IEmailService EmailService
+@inject NavigationManager Navigation
+
+<div class="auth-card">
+    <div class="auth-header">
+        <div class="auth-brand-badge badge-reset">
+            <span class="auth-brand-icon">🔑</span>
+        </div>
+        <h1 class="auth-title">Recuperar Senha</h1>
+        <p class="auth-subtitle">Informe seu e-mail cadastrado para enviarmos as instruções de redefinição</p>
+    </div>
+
+    @if (!string.IsNullOrEmpty(mensagemErro))
+    {
+        <div class="auth-alert alert-danger">
+            <span>⚠️ @mensagemErro</span>
+        </div>
+    }
+
+    @if (!string.IsNullOrEmpty(mensagemSucesso))
+    {
+        <div class="auth-alert alert-success">
+            <span>✅ @mensagemSucesso</span>
+        </div>
+    }
+
+    @if (emailEnviado)
+    {
+        @if (ultimoEmailSimulado != null)
+        {
+            <div class="simulacao-box">
+                <div class="simulacao-header">
+                    <span>💡 Modo Demonstração (Código de Recuperação)</span>
+                </div>
+                <p class="simulacao-desc">
+                    Código gerado para testes locais imediatos:
+                </p>
+                <div class="simulacao-codigo-area">
+                    <span class="simulacao-codigo">@ultimoEmailSimulado.CodigoConfirmacao</span>
+                </div>
+            </div>
+        }
+
+        <div class="prosseguir-box">
+            <p class="prosseguir-desc">
+                Enviamos o código para <strong>@email</strong>. Clique abaixo para informar o código e cadastrar sua nova senha:
+            </p>
+            <button type="button" class="btn-auth-primary" @onclick="IrParaRedefinicao">
+                <span>Digitar Código e Nova Senha →</span>
+            </button>
+        </div>
+    }
+    else
+    {
+        <form @onsubmit="EnviarSolicitacao" class="auth-form">
+            <div class="form-group">
+                <label class="form-label" for="reset-email">E-mail Cadastrado</label>
+                <div class="input-wrapper">
+                    <span class="input-icon">✉️</span>
+                    <input id="reset-email" 
+                           type="email" 
+                           class="form-control" 
+                           placeholder="seu.email@exemplo.com" 
+                           @bind="email" 
+                           required 
+                           autofocus />
+                </div>
+                <span class="field-hint">Enviaremos um código de 6 dígitos e um link para este endereço.</span>
+            </div>
+
+            <button type="submit" class="btn-auth-primary" disabled="@carregando">
+                @if (carregando)
+                {
+                    <span class="spinner-sm"></span>
+                    <span>Enviando código...</span>
+                }
+                else
+                {
+                    <span>Enviar Código de Redefinição</span>
+                }
+            </button>
+        </form>
+    }
+
+    <div class="auth-footer">
+        <p class="footer-text">
+            Lembrou da senha? 
+            <a href="/login" class="footer-link">Voltar para o Login</a>
+        </p>
+    </div>
+</div>
+
+@code {
+    private string email = "";
+    private bool carregando = false;
+    private bool emailEnviado = false;
+    private string? mensagemErro;
+    private string? mensagemSucesso;
+    private UltimoEmailEnviado? ultimoEmailSimulado;
+
+    private async Task EnviarSolicitacao()
+    {
+        if (string.IsNullOrWhiteSpace(email) || !email.Contains('@'))
+        {
+            mensagemErro = "Por favor, digite um e-mail válido.";
+            return;
+        }
+
+        mensagemErro = null;
+        mensagemSucesso = null;
+        carregando = true;
+
+        try
+        {
+            var res = await AuthService.SolicitarRecuperacaoSenhaAsync(email, Navigation.BaseUri);
+            if (res.Sucesso)
+            {
+                emailEnviado = true;
+                mensagemSucesso = res.Mensagem;
+                ultimoEmailSimulado = EmailService.ObterUltimoEmailSimulado();
+            }
+            else
+            {
+                mensagemErro = res.Mensagem;
+            }
+        }
+        catch (Exception ex)
+        {
+            mensagemErro = "Erro ao solicitar recuperação: " + ex.Message;
+        }
+        finally
+        {
+            carregando = false;
+        }
+    }
+
+    private void IrParaRedefinicao()
+    {
+        Navigation.NavigateTo($"/redefinir-senha?email={Uri.EscapeDataString(email)}");
+    }
+}

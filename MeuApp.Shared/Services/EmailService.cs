@@ -106,8 +106,82 @@ public class EmailService : IEmailService
 
     public async Task<bool> EnviarEmailRecuperacaoSenhaAsync(string nome, string email, string linkRecuperacao, string codigo)
     {
-        _logger.LogInformation($"[RECUPERAÇÃO DE SENHA] Para: {email} | Código: {codigo}");
-        await Task.CompletedTask;
+        var assunto = "ValiData - Redefinição de Senha";
+        var corpoHtml = $@"
+            <div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px;'>
+                <div style='text-align: center; margin-bottom: 20px;'>
+                    <h2 style='color: #4f46e5; margin: 0;'>ValiData</h2>
+                    <p style='color: #64748b; font-size: 0.9rem;'>Redefinição Segura de Senha</p>
+                </div>
+                
+                <h3 style='color: #0f172a;'>Olá, {nome}!</h3>
+                <p style='color: #334155; line-height: 1.5;'>
+                    Recebemos uma solicitação para redefinir a senha da sua conta no ValiData. Use o código de 6 dígitos abaixo ou clique no link para cadastrar uma nova senha:
+                </p>
+
+                <div style='text-align: center; margin: 30px 0;'>
+                    <div style='display: inline-block; background: #fef2f2; border: 2px dashed #ef4444; border-radius: 10px; padding: 12px 28px; font-size: 2rem; font-weight: 800; letter-spacing: 6px; color: #dc2626;'>
+                        {codigo}
+                    </div>
+                </div>
+
+                <div style='text-align: center; margin-bottom: 30px;'>
+                    <a href='{linkRecuperacao}' style='background: #ef4444; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: bold; display: inline-block;'>
+                        Redefinir Minha Senha
+                    </a>
+                </div>
+
+                <p style='color: #94a3b8; font-size: 0.8rem; text-align: center; margin-top: 30px; border-top: 1px solid #f1f5f9; padding-top: 16px;'>
+                    Este código expira em 2 horas. Se você não solicitou a redefinição de senha, ignore este e-mail. Sua conta continua segura.
+                </p>
+            </div>
+        ";
+
+        _ultimoEmailSimulado = new UltimoEmailEnviado
+        {
+            Destinatario = email,
+            Assunto = assunto,
+            CodigoConfirmacao = codigo,
+            LinkConfirmacao = linkRecuperacao,
+            DataEnvio = DateTime.Now
+        };
+
+        _logger.LogInformation($"[RECUPERAÇÃO DE SENHA SIMULADA] Para: {email} | Código: {codigo} | Link: {linkRecuperacao}");
+
+        var smtpHost = Environment.GetEnvironmentVariable("SMTP_HOST");
+        var smtpPortStr = Environment.GetEnvironmentVariable("SMTP_PORT");
+        var smtpUser = Environment.GetEnvironmentVariable("SMTP_USER");
+        var smtpPass = Environment.GetEnvironmentVariable("SMTP_PASS");
+
+        if (!OperatingSystem.IsBrowser() && !string.IsNullOrWhiteSpace(smtpHost) && !string.IsNullOrWhiteSpace(smtpUser) && !string.IsNullOrWhiteSpace(smtpPass))
+        {
+            try
+            {
+                int smtpPort = int.TryParse(smtpPortStr, out var p) ? p : 587;
+                using var client = new SmtpClient(smtpHost, smtpPort)
+                {
+                    Credentials = new NetworkCredential(smtpUser, smtpPass),
+                    EnableSsl = true
+                };
+
+                var mail = new MailMessage
+                {
+                    From = new MailAddress(smtpUser, "ValiData"),
+                    Subject = assunto,
+                    Body = corpoHtml,
+                    IsBodyHtml = true
+                };
+                mail.To.Add(email);
+
+                await client.SendMailAsync(mail);
+                _logger.LogInformation($"[E-MAIL DE RECUPERAÇÃO ENVIADO COM SUCESSO VIA SMTP] Para: {email}");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, $"[SMTP FALHOU - MANTENDO MODO SIMULADO] Erro ao enviar recuperação de senha para {email}");
+            }
+        }
+
         return true;
     }
 }

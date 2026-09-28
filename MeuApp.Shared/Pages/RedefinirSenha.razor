@@ -1,0 +1,191 @@
+@page "/redefinir-senha"
+@layout MeuApp.Shared.Layout.AuthLayout
+@inject IAuthService AuthService
+@inject IEmailService EmailService
+@inject NavigationManager Navigation
+
+<div class="auth-card">
+    <div class="auth-header">
+        <div class="auth-brand-badge badge-lock">
+            <span class="auth-brand-icon">🛡️</span>
+        </div>
+        <h1 class="auth-title">Nova Senha</h1>
+        <p class="auth-subtitle">Crie uma nova senha de acesso para sua conta</p>
+    </div>
+
+    @if (!string.IsNullOrEmpty(mensagemErro))
+    {
+        <div class="auth-alert alert-danger">
+            <span>⚠️ @mensagemErro</span>
+        </div>
+    }
+
+    @if (!string.IsNullOrEmpty(mensagemSucesso))
+    {
+        <div class="auth-alert alert-success">
+            <span>🎉 @mensagemSucesso</span>
+            <div class="alert-action">
+                <a href="/login" class="btn-alert-link">Fazer login com a nova senha →</a>
+            </div>
+        </div>
+    }
+    else
+    {
+        <!-- Painel de Demonstração / Testes Locais -->
+        @if (string.IsNullOrEmpty(Token) && ultimoEmailSimulado != null)
+        {
+            <div class="simulacao-box">
+                <div class="simulacao-header">
+                    <span>💡 Modo Demonstração (Código de Recuperação)</span>
+                </div>
+                <div class="simulacao-codigo-area">
+                    <span class="simulacao-codigo">@ultimoEmailSimulado.CodigoConfirmacao</span>
+                    <button type="button" class="btn-usar-codigo" @onclick="() => codigo = ultimoEmailSimulado.CodigoConfirmacao">
+                        Preencher Código
+                    </button>
+                </div>
+            </div>
+        }
+
+        <form @onsubmit="SalvarNovaSenha" class="auth-form">
+            @if (string.IsNullOrEmpty(Token))
+            {
+                <div class="form-group">
+                    <label class="form-label" for="reset-cod">Código de 6 Dígitos</label>
+                    <div class="input-wrapper">
+                        <input id="reset-cod" 
+                               type="text" 
+                               maxlength="6" 
+                               class="form-control input-codigo-centrado" 
+                               placeholder="000000" 
+                               @bind="codigo" 
+                               required 
+                               autofocus />
+                    </div>
+                    <span class="field-hint">Código numérico de 6 dígitos que enviamos ao seu e-mail.</span>
+                </div>
+            }
+
+            <div class="form-group">
+                <label class="form-label" for="reset-nova-senha">Nova Senha</label>
+                <div class="input-wrapper">
+                    <span class="input-icon">🔒</span>
+                    <input id="reset-nova-senha" 
+                           type="@(mostrarSenha ? "text" : "password")" 
+                           class="form-control" 
+                           placeholder="Mínimo 6 caracteres" 
+                           @bind="novaSenha" 
+                           required />
+                    <button type="button" 
+                            class="btn-toggle-senha" 
+                            @onclick="() => mostrarSenha = !mostrarSenha"
+                            title="@(mostrarSenha ? "Ocultar senha" : "Ver senha")">
+                        @(mostrarSenha ? "👁️" : "👁️‍🗨️")
+                    </button>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="reset-conf-senha">Confirmar Nova Senha</label>
+                <div class="input-wrapper">
+                    <span class="input-icon">🔑</span>
+                    <input id="reset-conf-senha" 
+                           type="@(mostrarSenha ? "text" : "password")" 
+                           class="form-control" 
+                           placeholder="Repita a nova senha" 
+                           @bind="confirmacaoSenha" 
+                           required />
+                </div>
+            </div>
+
+            <button type="submit" class="btn-auth-primary" disabled="@carregando">
+                @if (carregando)
+                {
+                    <span class="spinner-sm"></span>
+                    <span>Salvando nova senha...</span>
+                }
+                else
+                {
+                    <span>Redefinir e Salvar Senha</span>
+                }
+            </button>
+        </form>
+    }
+
+    <div class="auth-footer">
+        <p class="footer-text">
+            Deseja cancelar? 
+            <a href="/login" class="footer-link">Voltar para o Login</a>
+        </p>
+    </div>
+</div>
+
+@code {
+    [SupplyParameterFromQuery]
+    public string? Token { get; set; }
+
+    [SupplyParameterFromQuery]
+    public string? Email { get; set; }
+
+    private string codigo = "";
+    private string novaSenha = "";
+    private string confirmacaoSenha = "";
+    private bool mostrarSenha = false;
+    private bool carregando = false;
+    private string? mensagemErro;
+    private string? mensagemSucesso;
+    private UltimoEmailEnviado? ultimoEmailSimulado;
+
+    protected override void OnInitialized()
+    {
+        ultimoEmailSimulado = EmailService.ObterUltimoEmailSimulado();
+    }
+
+    private async Task SalvarNovaSenha()
+    {
+        mensagemErro = null;
+
+        var tokenOuCodigo = !string.IsNullOrEmpty(Token) ? Token : codigo;
+
+        if (string.IsNullOrWhiteSpace(tokenOuCodigo))
+        {
+            mensagemErro = "Por favor, informe o código de 6 dígitos recebido no e-mail.";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(novaSenha) || novaSenha.Length < 6)
+        {
+            mensagemErro = "A nova senha deve ter no mínimo 6 caracteres.";
+            return;
+        }
+
+        if (novaSenha != confirmacaoSenha)
+        {
+            mensagemErro = "As senhas não coincidem. Digite a mesma senha nos dois campos.";
+            return;
+        }
+
+        carregando = true;
+
+        try
+        {
+            var res = await AuthService.RedefinirSenhaAsync(tokenOuCodigo, novaSenha);
+            if (res.Sucesso)
+            {
+                mensagemSucesso = res.Mensagem;
+            }
+            else
+            {
+                mensagemErro = res.Mensagem;
+            }
+        }
+        catch (Exception ex)
+        {
+            mensagemErro = "Erro ao redefinir senha: " + ex.Message;
+        }
+        finally
+        {
+            carregando = false;
+        }
+    }
+}

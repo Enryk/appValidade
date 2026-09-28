@@ -110,6 +110,9 @@ public class ValidadeService : IValidadeService
                     ""TokenConfirmacao"" TEXT NULL,
                     ""CodigoConfirmacao"" TEXT NULL,
                     ""TokenExpiracao"" TEXT NULL,
+                    ""TokenRedefinicaoSenha"" TEXT NULL,
+                    ""CodigoRedefinicaoSenha"" TEXT NULL,
+                    ""TokenRedefinicaoExpiracao"" TEXT NULL,
                     ""DataCriacao"" TEXT NOT NULL,
                     ""UltimoAcesso"" TEXT NULL,
                     ""Ativo"" INTEGER NOT NULL
@@ -117,6 +120,33 @@ public class ValidadeService : IValidadeService
                 CREATE UNIQUE INDEX IF NOT EXISTS ""IX_Usuarios_Email"" ON ""Usuarios"" (""Email"");
             ";
             await cmdCreateUsers.ExecuteNonQueryAsync();
+
+            // Migração de colunas de redefinição de senha caso a tabela Usuarios já tenha sido criada anteriormente
+            using var cmdCheckUserCols = conn.CreateCommand();
+            cmdCheckUserCols.CommandText = "PRAGMA table_info(Usuarios);";
+            using var readerUsers = await cmdCheckUserCols.ExecuteReaderAsync();
+            var temTokenRedef = false;
+            while (await readerUsers.ReadAsync())
+            {
+                var col = readerUsers.GetString(1);
+                if (col.Equals("TokenRedefinicaoSenha", StringComparison.OrdinalIgnoreCase))
+                {
+                    temTokenRedef = true;
+                    break;
+                }
+            }
+            await readerUsers.CloseAsync();
+
+            if (!temTokenRedef)
+            {
+                using var cmdAlterUsers = conn.CreateCommand();
+                cmdAlterUsers.CommandText = @"
+                    ALTER TABLE Usuarios ADD COLUMN TokenRedefinicaoSenha TEXT NULL;
+                    ALTER TABLE Usuarios ADD COLUMN CodigoRedefinicaoSenha TEXT NULL;
+                    ALTER TABLE Usuarios ADD COLUMN TokenRedefinicaoExpiracao TEXT NULL;
+                ";
+                await cmdAlterUsers.ExecuteNonQueryAsync();
+            }
         }
         catch
         {

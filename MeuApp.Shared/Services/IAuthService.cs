@@ -29,6 +29,8 @@ public interface IAuthService
     Task LogoutAsync();
     Task<Usuario?> ObterUsuarioLogadoAsync();
     Task<ResultadoAuth> AtualizarPerfilAsync(int usuarioId, string nome, string? senhaAtual, string? novaSenha);
+    Task<ResultadoAuth> SolicitarRecuperacaoSenhaAsync(string email, string baseUrl = "");
+    Task<ResultadoAuth> RedefinirSenhaAsync(string tokenOuCodigo, string novaSenha);
     
     event Action? OnAuthStateChanged;
 }

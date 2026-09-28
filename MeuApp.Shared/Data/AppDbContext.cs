@@ -68,6 +68,8 @@ public class AppDbContext : DbContext
             entity.HasIndex(e => e.Email).IsUnique();
             entity.HasIndex(e => e.TokenConfirmacao);
             entity.HasIndex(e => e.CodigoConfirmacao);
+            entity.HasIndex(e => e.TokenRedefinicaoSenha);
+            entity.HasIndex(e => e.CodigoRedefinicaoSenha);
         });
     }
 }
