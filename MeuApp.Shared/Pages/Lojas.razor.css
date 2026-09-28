@@ -520,7 +520,8 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 12px;
+    gap: 14px;
+    box-sizing: border-box;
     transition: all 0.15s ease;
 }
 
@@ -539,6 +540,7 @@
     align-items: center;
     gap: 12px;
     min-width: 0;
+    flex: 1 1 auto;
 }
 
 .membro-icon-box {
@@ -561,6 +563,7 @@
     display: flex;
     flex-direction: column;
     min-width: 0;
+    flex: 1 1 auto;
     gap: 2px;
 }
 
@@ -587,6 +590,8 @@
     padding: 2px 8px;
     border-radius: 12px;
     text-transform: uppercase;
+    display: inline-block;
+    width: fit-content;
 }
 
 .papel-admin {
@@ -599,18 +604,13 @@
     color: #0369a1;
 }
 
-.badge-senha-inicial {
-    background: #fef3c7;
-    color: #92400e;
-    font-size: 0.7rem;
-    font-weight: 700;
-    padding: 2px 8px;
-    border-radius: 12px;
-}
-
 .badge-data {
     font-size: 0.72rem;
     color: #94a3b8;
+    margin-top: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .membro-nome {
@@ -627,4 +627,21 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+}
+
+@media (max-width: 520px) {
+    .membro-item-card {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+    }
+
+    .membro-item-card .loja-card-actions {
+        width: 100%;
+    }
+
+    .membro-item-card .loja-card-actions .btn-excluir-loja {
+        width: 100%;
+        justify-content: center;
+    }
 }

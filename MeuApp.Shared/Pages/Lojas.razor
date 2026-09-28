@@ -204,11 +204,10 @@
                                     <span class="badge-papel @(membro.Papel == "Administrador" ? "papel-admin" : "papel-colab")">
                                         @membro.Papel
                                     </span>
-                                    <span class="badge-senha-inicial">🔑 Senha inicial: 123</span>
-                                    <span class="badge-data">Adicionado em @membro.DataAdicao.ToString("dd/MM/yyyy")</span>
                                 </div>
-                                <strong class="membro-nome">@(string.IsNullOrWhiteSpace(membro.Nome) ? membro.Email : membro.Nome)</strong>
-                                <span class="membro-email">@membro.Email</span>
+                                <strong class="membro-nome" title="@(string.IsNullOrWhiteSpace(membro.Nome) ? membro.Email : membro.Nome)">@(string.IsNullOrWhiteSpace(membro.Nome) ? membro.Email : membro.Nome)</strong>
+                                <span class="membro-email" title="@membro.Email">@membro.Email</span>
+                                <span class="badge-data">📅 Adicionado em @membro.DataAdicao.ToString("dd/MM/yyyy")</span>
                             </div>
                         </div>
 
