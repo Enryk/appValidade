@@ -107,6 +107,32 @@ public class ValidadeService : IValidadeService
             await GarantirColunaContaIdAsync("Produtos");
             await GarantirColunaContaIdAsync("RegistrosValidade");
 
+            // Garante coluna DeveAlterarSenha na tabela Usuarios
+            async Task GarantirColunaDeveAlterarSenhaAsync()
+            {
+                using var cmd = conn.CreateCommand();
+                cmd.CommandText = "PRAGMA table_info(Usuarios);";
+                using var r = await cmd.ExecuteReaderAsync();
+                var temCol = false;
+                while (await r.ReadAsync())
+                {
+                    if (r.GetString(1).Equals("DeveAlterarSenha", StringComparison.OrdinalIgnoreCase))
+                    {
+                        temCol = true;
+                        break;
+                    }
+                }
+                await r.CloseAsync();
+
+                if (!temCol)
+                {
+                    using var cmdAlt = conn.CreateCommand();
+                    cmdAlt.CommandText = "ALTER TABLE Usuarios ADD COLUMN DeveAlterarSenha INTEGER NOT NULL DEFAULT 0;";
+                    await cmdAlt.ExecuteNonQueryAsync();
+                }
+            }
+            await GarantirColunaDeveAlterarSenhaAsync();
+
             // 3. Atualiza índice único de produtos para ser por (ContaId, CodigoBarras)
             using var cmdCheckProdTable = conn.CreateCommand();
             cmdCheckProdTable.CommandText = "SELECT 1 FROM sqlite_master WHERE type='table' AND name='Produtos';";
@@ -194,11 +220,29 @@ public class ValidadeService : IValidadeService
         };
         context.MembrosTime.Add(novo);
 
-        // Se o usuário do e-mail já estiver cadastrado no sistema, associa ele à conta do time
+        // Se o usuário do e-mail já estiver cadastrado no sistema, associa ele à conta do time.
+        // Se ainda não existir, cria o usuário pré-cadastrado com senha inicial "123" e DeveAlterarSenha = true
         var usuarioExistente = await context.Usuarios.FirstOrDefaultAsync(u => u.Email == email);
         if (usuarioExistente != null)
         {
             usuarioExistente.ContaId = cid;
+        }
+        else
+        {
+            AuthService.CriarHashSenha("123", out var hash, out var salt);
+            var novoUsuario = new Usuario
+            {
+                Nome = string.IsNullOrWhiteSpace(nome) ? email.Split('@')[0] : nome.Trim(),
+                Email = email,
+                ContaId = cid,
+                SenhaHash = hash,
+                SenhaSalt = salt,
+                EmailConfirmado = true,
+                DeveAlterarSenha = true,
+                DataCriacao = DateTime.Now,
+                Ativo = true
+            };
+            context.Usuarios.Add(novoUsuario);
         }
 
         await context.SaveChangesAsync();

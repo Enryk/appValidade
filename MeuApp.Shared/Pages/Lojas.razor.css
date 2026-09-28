@@ -599,6 +599,15 @@
     color: #0369a1;
 }
 
+.badge-senha-inicial {
+    background: #fef3c7;
+    color: #92400e;
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 12px;
+}
+
 .badge-data {
     font-size: 0.72rem;
     color: #94a3b8;

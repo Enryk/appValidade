@@ -64,6 +64,12 @@
     color: #15803d;
 }
 
+.alert-info {
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    color: #1d4ed8;
+}
+
 .btn-alert-link {
     display: inline-block;
     color: #4f46e5;
@@ -192,6 +198,25 @@
 .btn-auth-primary:disabled {
     opacity: 0.7;
     cursor: not-allowed;
+}
+
+.btn-auth-secondary {
+    background: transparent;
+    color: #64748b;
+    border: none;
+    padding: 8px 12px;
+    font-size: 0.88rem;
+    font-weight: 600;
+    cursor: pointer;
+    text-align: center;
+    width: 100%;
+    margin-top: 4px;
+    transition: color 0.15s ease;
+}
+
+.btn-auth-secondary:hover {
+    color: #0f172a;
+    text-decoration: underline;
 }
 
 .auth-footer {

@@ -10,6 +10,7 @@ public class Usuario
     public string Email { get; set; } = string.Empty;
     public string SenhaHash { get; set; } = string.Empty;
     public string SenhaSalt { get; set; } = string.Empty;
+    public bool DeveAlterarSenha { get; set; } = false;
     
     public bool EmailConfirmado { get; set; } = false;
     public string? TokenConfirmacao { get; set; }

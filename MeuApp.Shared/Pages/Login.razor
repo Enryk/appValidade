@@ -6,10 +6,10 @@
 <div class="auth-card">
     <div class="auth-header">
         <div class="auth-brand-badge">
-            <span class="auth-brand-icon">📦</span>
+            <span class="auth-brand-icon">@(modoPrimeiroAcesso ? "🔑" : "📦")</span>
         </div>
-        <h1 class="auth-title">ValiData</h1>
-        <p class="auth-subtitle">Acesse sua conta para gerenciar validades</p>
+        <h1 class="auth-title">@(modoPrimeiroAcesso ? "Definir Nova Senha" : "ValiData")</h1>
+        <p class="auth-subtitle">@(modoPrimeiroAcesso ? "Crie sua senha definitiva para acessar sua conta" : "Acesse sua conta para gerenciar validades")</p>
     </div>
 
     @if (!string.IsNullOrEmpty(mensagemErro))
@@ -34,62 +34,124 @@
         </div>
     }
 
-    <form @onsubmit="EfetuarLogin" class="auth-form">
-        <div class="form-group">
-            <label class="form-label" for="login-email">E-mail</label>
-            <div class="input-wrapper">
-                <span class="input-icon">✉️</span>
-                <input id="login-email" 
-                       type="email" 
-                       class="form-control" 
-                       placeholder="seu.email@exemplo.com" 
-                       @bind="email" 
-                       required 
-                       autofocus />
+    @if (modoPrimeiroAcesso)
+    {
+        <form @onsubmit="SalvarNovaSenhaPrimeiroAcesso" class="auth-form">
+            <div class="auth-alert alert-info">
+                <span>👋 Olá, <strong>@(usuarioPrimeiroAcesso?.Nome ?? "Colaborador")</strong>! A senha padrão (123) foi confirmada. Agora defina uma nova senha pessoal para continuar.</span>
             </div>
+
+            <div class="form-group">
+                <label class="form-label" for="nova-senha">Nova Senha (mínimo 6 caracteres)</label>
+                <div class="input-wrapper">
+                    <span class="input-icon">🔒</span>
+                    <input id="nova-senha" 
+                           type="@(mostrarNovaSenha ? "text" : "password")" 
+                           class="form-control" 
+                           placeholder="••••••••" 
+                           @bind="novaSenhaPrimeiroAcesso" 
+                           minlength="6"
+                           required 
+                           autofocus />
+                    <button type="button" 
+                            class="btn-toggle-senha" 
+                            @onclick="() => mostrarNovaSenha = !mostrarNovaSenha"
+                            title="@(mostrarNovaSenha ? "Ocultar senha" : "Ver senha")">
+                        @(mostrarNovaSenha ? "👁️" : "👁️‍🗨️")
+                    </button>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="confirmar-nova-senha">Confirmar Nova Senha</label>
+                <div class="input-wrapper">
+                    <span class="input-icon">🔒</span>
+                    <input id="confirmar-nova-senha" 
+                           type="@(mostrarNovaSenha ? "text" : "password")" 
+                           class="form-control" 
+                           placeholder="••••••••" 
+                           @bind="confirmarNovaSenhaPrimeiroAcesso" 
+                           minlength="6"
+                           required />
+                </div>
+            </div>
+
+            <button type="submit" class="btn-auth-primary" disabled="@carregando">
+                @if (carregando)
+                {
+                    <span class="spinner-sm"></span>
+                    <span>Salvando...</span>
+                }
+                else
+                {
+                    <span>Salvar Senha e Entrar</span>
+                }
+            </button>
+
+            <button type="button" class="btn-auth-secondary" @onclick="CancelarPrimeiroAcesso">
+                ← Voltar ao login
+            </button>
+        </form>
+    }
+    else
+    {
+        <form @onsubmit="EfetuarLogin" class="auth-form">
+            <div class="form-group">
+                <label class="form-label" for="login-email">E-mail</label>
+                <div class="input-wrapper">
+                    <span class="input-icon">✉️</span>
+                    <input id="login-email" 
+                           type="email" 
+                           class="form-control" 
+                           placeholder="seu.email@exemplo.com" 
+                           @bind="email" 
+                           required 
+                           autofocus />
+                </div>
+            </div>
+
+            <div class="form-group">
+                <div class="form-label-row">
+                    <label class="form-label" for="login-senha">Senha</label>
+                    <a href="/esqueci-senha" class="link-esqueci-senha">Esqueci a senha?</a>
+                </div>
+                <div class="input-wrapper">
+                    <span class="input-icon">🔒</span>
+                    <input id="login-senha" 
+                           type="@(mostrarSenha ? "text" : "password")" 
+                           class="form-control" 
+                           placeholder="••••••••" 
+                           @bind="senha" 
+                           required />
+                    <button type="button" 
+                            class="btn-toggle-senha" 
+                            @onclick="() => mostrarSenha = !mostrarSenha"
+                            title="@(mostrarSenha ? "Ocultar senha" : "Ver senha")">
+                        @(mostrarSenha ? "👁️" : "👁️‍🗨️")
+                    </button>
+                </div>
+            </div>
+
+            <button type="submit" class="btn-auth-primary" disabled="@carregando">
+                @if (carregando)
+                {
+                    <span class="spinner-sm"></span>
+                    <span>Entrando...</span>
+                }
+                else
+                {
+                    <span>Acessar o Sistema</span>
+                }
+            </button>
+        </form>
+
+        <div class="auth-footer">
+            <p class="footer-text">
+                Não tem cadastro? 
+                <a href="/cadastrar" class="footer-link">Cadastrar nova conta</a>
+            </p>
         </div>
-
-        <div class="form-group">
-            <div class="form-label-row">
-                <label class="form-label" for="login-senha">Senha</label>
-                <a href="/esqueci-senha" class="link-esqueci-senha">Esqueci a senha?</a>
-            </div>
-            <div class="input-wrapper">
-                <span class="input-icon">🔒</span>
-                <input id="login-senha" 
-                       type="@(mostrarSenha ? "text" : "password")" 
-                       class="form-control" 
-                       placeholder="••••••••" 
-                       @bind="senha" 
-                       required />
-                <button type="button" 
-                        class="btn-toggle-senha" 
-                        @onclick="() => mostrarSenha = !mostrarSenha"
-                        title="@(mostrarSenha ? "Ocultar senha" : "Ver senha")">
-                    @(mostrarSenha ? "👁️" : "👁️‍🗨️")
-                </button>
-            </div>
-        </div>
-
-        <button type="submit" class="btn-auth-primary" disabled="@carregando">
-            @if (carregando)
-            {
-                <span class="spinner-sm"></span>
-                <span>Entrando...</span>
-            }
-            else
-            {
-                <span>Acessar o Sistema</span>
-            }
-        </button>
-    </form>
-
-    <div class="auth-footer">
-        <p class="footer-text">
-            Não tem cadastro? 
-            <a href="/cadastrar" class="footer-link">Cadastrar nova conta</a>
-        </p>
-    </div>
+    }
 </div>
 
 @code {
@@ -100,6 +162,13 @@
     private string? mensagemErro;
     private string? mensagemSucesso;
     private bool requerConfirmacao = false;
+
+    // Primeiro Acesso
+    private bool modoPrimeiroAcesso = false;
+    private Usuario? usuarioPrimeiroAcesso;
+    private string novaSenhaPrimeiroAcesso = "";
+    private string confirmarNovaSenhaPrimeiroAcesso = "";
+    private bool mostrarNovaSenha = false;
 
     [SupplyParameterFromQuery]
     public string? Mensagem { get; set; }
@@ -124,6 +193,15 @@
             var res = await AuthService.LoginAsync(email, senha);
             if (res.Sucesso)
             {
+                if (res.DeveAlterarSenha)
+                {
+                    modoPrimeiroAcesso = true;
+                    usuarioPrimeiroAcesso = res.Usuario;
+                    senha = "";
+                    mensagemSucesso = "Senha inicial (123) validada! Por favor, crie sua nova senha de acesso.";
+                    return;
+                }
+
                 Navigation.NavigateTo("/", forceLoad: true);
             }
             else
@@ -140,5 +218,64 @@
         {
             carregando = false;
         }
+    }
+
+    private async Task SalvarNovaSenhaPrimeiroAcesso()
+    {
+        mensagemErro = null;
+        mensagemSucesso = null;
+
+        if (string.IsNullOrWhiteSpace(novaSenhaPrimeiroAcesso) || novaSenhaPrimeiroAcesso.Length < 6)
+        {
+            mensagemErro = "A nova senha deve ter no mínimo 6 caracteres.";
+            return;
+        }
+
+        if (novaSenhaPrimeiroAcesso != confirmarNovaSenhaPrimeiroAcesso)
+        {
+            mensagemErro = "As senhas não coincidem. Digite a mesma senha nos dois campos.";
+            return;
+        }
+
+        if (usuarioPrimeiroAcesso == null)
+        {
+            mensagemErro = "Sessão expirada. Por favor, tente fazer login novamente.";
+            modoPrimeiroAcesso = false;
+            return;
+        }
+
+        carregando = true;
+
+        try
+        {
+            var res = await AuthService.DefinirNovaSenhaPrimeiroAcessoAsync(usuarioPrimeiroAcesso.Id, novaSenhaPrimeiroAcesso);
+            if (res.Sucesso)
+            {
+                Navigation.NavigateTo("/", forceLoad: true);
+            }
+            else
+            {
+                mensagemErro = res.Mensagem;
+            }
+        }
+        catch (Exception ex)
+        {
+            mensagemErro = "Erro ao definir nova senha: " + ex.Message;
+        }
+        finally
+        {
+            carregando = false;
+        }
+    }
+
+    private void CancelarPrimeiroAcesso()
+    {
+        modoPrimeiroAcesso = false;
+        usuarioPrimeiroAcesso = null;
+        novaSenhaPrimeiroAcesso = "";
+        confirmarNovaSenhaPrimeiroAcesso = "";
+        senha = "";
+        mensagemErro = null;
+        mensagemSucesso = null;
     }
 }

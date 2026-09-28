@@ -128,6 +128,17 @@ public class AuthService : IAuthService
 
             await GarantirContaDoUsuarioAsync(db, usuario);
 
+            if (usuario.DeveAlterarSenha)
+            {
+                return new ResultadoAuth
+                {
+                    Sucesso = true,
+                    Usuario = usuario,
+                    DeveAlterarSenha = true,
+                    Mensagem = "Senha inicial (123) validada com sucesso! Defina sua nova senha pessoal para continuar."
+                };
+            }
+
             usuario.UltimoAcesso = DateTime.Now;
             await db.SaveChangesAsync();
 
@@ -502,6 +513,39 @@ public class AuthService : IAuthService
         }
     }
 
+    public async Task<ResultadoAuth> DefinirNovaSenhaPrimeiroAcessoAsync(int usuarioId, string novaSenha)
+    {
+        if (string.IsNullOrWhiteSpace(novaSenha) || novaSenha.Length < 6)
+            return ResultadoAuth.Falha("A nova senha deve ter no mínimo 6 caracteres.");
+
+        try
+        {
+            await using var db = await _dbFactory.CreateDbContextAsync();
+            var usuario = await db.Usuarios.FirstOrDefaultAsync(u => u.Id == usuarioId);
+            if (usuario == null)
+                return ResultadoAuth.Falha("Usuário não encontrado.");
+
+            CriarHashSenha(novaSenha, out var novoHash, out var novoSalt);
+            usuario.SenhaHash = novoHash;
+            usuario.SenhaSalt = novoSalt;
+            usuario.DeveAlterarSenha = false;
+            usuario.UltimoAcesso = DateTime.Now;
+
+            await db.SaveChangesAsync();
+
+            _usuarioLogado = usuario;
+            await SalvarSessaoAsync(usuario.Id);
+            OnAuthStateChanged?.Invoke();
+
+            return ResultadoAuth.Ok(usuario, "Nova senha cadastrada com sucesso!");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Erro ao definir nova senha no primeiro acesso.");
+            return ResultadoAuth.Falha("Erro ao atualizar nova senha. Tente novamente.");
+        }
+    }
+
     private async Task SalvarSessaoAsync(int usuarioId)
     {
         try
@@ -516,7 +560,7 @@ public class AuthService : IAuthService
         }
     }
 
-    private static void CriarHashSenha(string senha, out string hash, out string salt)
+    public static void CriarHashSenha(string senha, out string hash, out string salt)
     {
         var saltBytes = RandomNumberGenerator.GetBytes(16);
         salt = Convert.ToBase64String(saltBytes);

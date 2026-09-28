@@ -204,6 +204,7 @@
                                     <span class="badge-papel @(membro.Papel == "Administrador" ? "papel-admin" : "papel-colab")">
                                         @membro.Papel
                                     </span>
+                                    <span class="badge-senha-inicial">🔑 Senha inicial: 123</span>
                                     <span class="badge-data">Adicionado em @membro.DataAdicao.ToString("dd/MM/yyyy")</span>
                                 </div>
                                 <strong class="membro-nome">@(string.IsNullOrWhiteSpace(membro.Nome) ? membro.Email : membro.Nome)</strong>
@@ -455,7 +456,7 @@
         }
 
         var res = await ValidadeService.AdicionarMembroTimeAsync(novoMembroEmail, novoMembroNome, novoMembroPapel);
-        feedbackMensagem = $"Colaborador '{res.Email}' adicionado ao seu Time com sucesso! Ao acessar com este e-mail, os dados da sua loja serão compartilhados.";
+        feedbackMensagem = $"Colaborador '{res.Email}' adicionado ao seu Time com sucesso! Senha inicial: 123 (será solicitada uma nova senha pessoal no primeiro acesso).";
         feedbackTipo = "success";
 
         novoMembroEmail = string.Empty;
