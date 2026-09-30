@@ -385,7 +385,6 @@
 
     protected override async Task OnInitializedAsync()
     {
-        await ValidadeService.InicializarBancoESeedAsync();
         lojas = await ValidadeService.GetLojasAsync();
 
         if (lojas.Any())

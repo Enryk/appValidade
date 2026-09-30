@@ -38,7 +38,7 @@
     {
         <form @onsubmit="SalvarNovaSenhaPrimeiroAcesso" class="auth-form">
             <div class="auth-alert alert-info">
-                <span>👋 Olá, <strong>@(usuarioPrimeiroAcesso?.Nome ?? "Colaborador")</strong>! A senha padrão (123) foi confirmada. Agora defina uma nova senha pessoal para continuar.</span>
+                <span>👋 Olá, <strong>@(usuarioPrimeiroAcesso?.Nome ?? "Colaborador")</strong>! Por favor, defina uma nova senha pessoal segura para continuar.</span>
             </div>
 
             <div class="form-group">
@@ -198,7 +198,7 @@
                     modoPrimeiroAcesso = true;
                     usuarioPrimeiroAcesso = res.Usuario;
                     senha = "";
-                    mensagemSucesso = "Senha inicial (123) validada! Por favor, crie sua nova senha de acesso.";
+                    mensagemSucesso = "Por favor, defina sua nova senha definitiva de acesso.";
                     return;
                 }
 
@@ -225,9 +225,9 @@
         mensagemErro = null;
         mensagemSucesso = null;
 
-        if (string.IsNullOrWhiteSpace(novaSenhaPrimeiroAcesso) || novaSenhaPrimeiroAcesso.Length < 6)
+        if (!AuthService.ValidarRegrasSenha(novaSenhaPrimeiroAcesso, out var erroRegra))
         {
-            mensagemErro = "A nova senha deve ter no mínimo 6 caracteres.";
+            mensagemErro = erroRegra;
             return;
         }
 

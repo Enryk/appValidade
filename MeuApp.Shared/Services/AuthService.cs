@@ -18,6 +18,7 @@ public class AuthService : IAuthService
     private readonly ILogger<AuthService> _logger;
     private Usuario? _usuarioLogado;
     private readonly string _sessionFilePath;
+    private readonly bool _isDesktopEnvironment;
 
     public event Action? OnAuthStateChanged;
 
@@ -30,16 +31,29 @@ public class AuthService : IAuthService
         _emailService = emailService;
         _logger = logger;
 
-        var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-        var appFolder = Path.Combine(localAppData, "ValiDataApp");
-        Directory.CreateDirectory(appFolder);
-        _sessionFilePath = Path.Combine(appFolder, "sessao.json");
+        _isDesktopEnvironment = !AppDomain.CurrentDomain.FriendlyName.Contains("MeuApp.Web", StringComparison.OrdinalIgnoreCase)
+                                && string.IsNullOrEmpty(Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT"));
+
+        if (_isDesktopEnvironment)
+        {
+            var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+            var appFolder = Path.Combine(localAppData, "ValiDataApp");
+            Directory.CreateDirectory(appFolder);
+            _sessionFilePath = Path.Combine(appFolder, "sessao.json");
+        }
+        else
+        {
+            _sessionFilePath = string.Empty;
+        }
     }
 
     public async Task<Usuario?> ObterUsuarioLogadoAsync()
     {
         if (_usuarioLogado != null)
             return _usuarioLogado;
+
+        if (!_isDesktopEnvironment || string.IsNullOrEmpty(_sessionFilePath))
+            return null;
 
         try
         {
@@ -135,7 +149,7 @@ public class AuthService : IAuthService
                     Sucesso = true,
                     Usuario = usuario,
                     DeveAlterarSenha = true,
-                    Mensagem = "Senha inicial (123) validada com sucesso! Defina sua nova senha pessoal para continuar."
+                    Mensagem = "Por favor, defina sua nova senha pessoal para continuar."
                 };
             }
 
@@ -212,7 +226,7 @@ public class AuthService : IAuthService
                 {
                     existente.Nome = nome;
                     existente.TokenConfirmacao = Guid.NewGuid().ToString("N");
-                    existente.CodigoConfirmacao = Random.Shared.Next(100000, 999999).ToString();
+                    existente.CodigoConfirmacao = GerarCodigoSeguro6Digitos();
                     existente.TokenExpiracao = DateTime.Now.AddHours(48);
 
                     if (existente.ContaId <= 0)
@@ -232,7 +246,7 @@ public class AuthService : IAuthService
             }
 
             var token = Guid.NewGuid().ToString("N");
-            var codigo = Random.Shared.Next(100000, 999999).ToString();
+            var codigo = GerarCodigoSeguro6Digitos();
 
             var convite = await db.MembrosTime.FirstOrDefaultAsync(m => m.Email == email && m.Ativo);
             int contaId = 0;
@@ -399,7 +413,7 @@ public class AuthService : IAuthService
                     existente.SenhaHash = hash;
                     existente.SenhaSalt = salt;
                     existente.TokenConfirmacao = Guid.NewGuid().ToString("N");
-                    existente.CodigoConfirmacao = Random.Shared.Next(100000, 999999).ToString();
+                    existente.CodigoConfirmacao = GerarCodigoSeguro6Digitos();
                     existente.TokenExpiracao = DateTime.Now.AddHours(24);
 
                     if (existente.ContaId <= 0)
@@ -421,7 +435,7 @@ public class AuthService : IAuthService
             CriarHashSenha(senha, out var novoHash, out var novoSalt);
 
             var token = Guid.NewGuid().ToString("N");
-            var codigo = Random.Shared.Next(100000, 999999).ToString();
+            var codigo = GerarCodigoSeguro6Digitos();
 
             // Verifica se o e-mail foi convidado para algum Time existente
             var convite = await db.MembrosTime.FirstOrDefaultAsync(m => m.Email == email && m.Ativo);
@@ -507,6 +521,7 @@ public class AuthService : IAuthService
                 if (jaConfirmado)
                     return ResultadoAuth.Ok(new Usuario(), "Este e-mail já foi validado anteriormente! Faça login para continuar.");
 
+                await Task.Delay(300);
                 return ResultadoAuth.Falha("Código ou link de validação inválido ou expirado.");
             }
 
@@ -550,7 +565,7 @@ public class AuthService : IAuthService
                 return ResultadoAuth.Ok(usuario, "Este e-mail já está validado! Pode fazer login.");
 
             usuario.TokenConfirmacao = Guid.NewGuid().ToString("N");
-            usuario.CodigoConfirmacao = Random.Shared.Next(100000, 999999).ToString();
+            usuario.CodigoConfirmacao = GerarCodigoSeguro6Digitos();
             usuario.TokenExpiracao = DateTime.Now.AddHours(24);
 
             await db.SaveChangesAsync();
@@ -615,14 +630,17 @@ public class AuthService : IAuthService
     public async Task LogoutAsync()
     {
         _usuarioLogado = null;
-        try
+        if (_isDesktopEnvironment && !string.IsNullOrEmpty(_sessionFilePath))
         {
-            if (File.Exists(_sessionFilePath))
-                File.Delete(_sessionFilePath);
-        }
-        catch
-        {
-            // Tratamento defensivo
+            try
+            {
+                if (File.Exists(_sessionFilePath))
+                    File.Delete(_sessionFilePath);
+            }
+            catch
+            {
+                // Tratamento defensivo
+            }
         }
 
         OnAuthStateChanged?.Invoke();
@@ -650,7 +668,7 @@ public class AuthService : IAuthService
                 return ResultadoAuth.Falha("Esta conta está desativada.");
 
             var token = Guid.NewGuid().ToString("N");
-            var codigo = Random.Shared.Next(100000, 999999).ToString();
+            var codigo = GerarCodigoSeguro6Digitos();
 
             usuario.TokenRedefinicaoSenha = token;
             usuario.CodigoRedefinicaoSenha = codigo;
@@ -688,7 +706,10 @@ public class AuthService : IAuthService
                 (u.CodigoRedefinicaoSenha == tokenOuCodigo || u.TokenRedefinicaoSenha == tokenOuCodigo));
 
             if (usuario == null)
+            {
+                await Task.Delay(300);
                 return ResultadoAuth.Falha("Código ou link de redefinição inválido ou não encontrado.");
+            }
 
             if (usuario.TokenRedefinicaoExpiracao.HasValue && usuario.TokenRedefinicaoExpiracao.Value < DateTime.Now)
                 return ResultadoAuth.Falha("Este código de redefinição já expirou. Solicite um novo.");
@@ -751,6 +772,9 @@ public class AuthService : IAuthService
 
     private async Task SalvarSessaoAsync(int usuarioId)
     {
+        if (!_isDesktopEnvironment || string.IsNullOrEmpty(_sessionFilePath))
+            return;
+
         try
         {
             var sessao = new SessaoPersistida { UsuarioId = usuarioId, DataLogin = DateTime.Now };
@@ -761,6 +785,11 @@ public class AuthService : IAuthService
         {
             _logger.LogWarning(ex, "Não foi possível persistir a sessão em disco.");
         }
+    }
+
+    public static string GerarCodigoSeguro6Digitos()
+    {
+        return RandomNumberGenerator.GetInt32(100000, 1000000).ToString();
     }
 
     public static void CriarHashSenha(string senha, out string hash, out string salt)

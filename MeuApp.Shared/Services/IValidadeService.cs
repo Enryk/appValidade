@@ -10,7 +10,7 @@ public interface IValidadeService
     Task<Conta?> ObterContaAtualAsync(int? contaId = null);
     Task<int> ObterContaIdAtualAsync();
     Task<List<MembroTime>> GetMembrosTimeAsync(int? contaId = null);
-    Task<MembroTime> AdicionarMembroTimeAsync(string email, string nome, string papel, int? contaId = null);
+    Task<MembroTime> AdicionarMembroTimeAsync(string email, string nome, string papel, int? contaId = null, string baseUrl = "");
     Task<bool> RemoverMembroTimeAsync(int membroId, int? contaId = null);
     Task<string> ObterPapelUsuarioAtualAsync();
     Task<bool> UsuarioAtualEhColaboradorAsync();

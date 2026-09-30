@@ -1,4 +1,5 @@
 @namespace MeuApp.Shared.Layout
+@implements IDisposable
 
 <div class="nav-container @(IsDesktopCollapsed ? "nav-collapsed" : "") @(ThemeService.IsDarkMode ? "theme-dark" : "theme-light")">
     <!-- Topo / Branding -->
@@ -249,6 +250,12 @@
         usuarioLogado = await AuthService.ObterUsuarioLogadoAsync();
         ehColaborador = await ValidadeService.UsuarioAtualEhColaboradorAsync();
         await InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        ThemeService.OnThemeChanged -= HandleThemeChanged;
+        AuthService.OnAuthStateChanged -= HandleAuthStateChanged;
     }
 
     private void ToggleNavMenu()

@@ -25,23 +25,25 @@ public class ValidadeService : IValidadeService
 
     public async Task<int> ObterContaIdAtualAsync()
     {
-        try
-        {
-            var usuario = await _authService.ObterUsuarioLogadoAsync();
-            if (usuario != null && usuario.ContaId > 0)
-                return usuario.ContaId;
-        }
-        catch
-        {
-        }
-        return 1;
+        var usuario = await _authService.ObterUsuarioLogadoAsync();
+        if (usuario != null && usuario.ContaId > 0)
+            return usuario.ContaId;
+
+        throw new UnauthorizedAccessException("Sessão expirada ou usuário não autenticado.");
     }
 
     private async Task<int> ResolverContaIdAsync(int? contaId)
     {
+        var contaAutenticada = await ObterContaIdAtualAsync();
         if (contaId.HasValue && contaId.Value > 0)
+        {
+            if (contaId.Value != contaAutenticada)
+            {
+                throw new UnauthorizedAccessException("Tentativa de acesso não autorizada a dados de outra organização.");
+            }
             return contaId.Value;
-        return await ObterContaIdAtualAsync();
+        }
+        return contaAutenticada;
     }
 
     public async Task InicializarBancoESeedAsync()
@@ -217,12 +219,13 @@ public class ValidadeService : IValidadeService
         var cid = await ResolverContaIdAsync(contaId);
         await using var context = await _contextFactory.CreateDbContextAsync();
         return await context.MembrosTime
+            .AsNoTracking()
             .Where(m => m.ContaId == cid && m.Ativo)
             .OrderBy(m => m.DataAdicao)
             .ToListAsync();
     }
 
-    public async Task<MembroTime> AdicionarMembroTimeAsync(string email, string nome, string papel, int? contaId = null)
+    public async Task<MembroTime> AdicionarMembroTimeAsync(string email, string nome, string papel, int? contaId = null, string baseUrl = "")
     {
         var cid = await ResolverContaIdAsync(contaId);
         email = email.Trim().ToLowerInvariant();
@@ -261,7 +264,7 @@ public class ValidadeService : IValidadeService
         else
         {
             var token = Guid.NewGuid().ToString("N");
-            var codigo = Random.Shared.Next(100000, 999999).ToString();
+            var codigo = System.Security.Cryptography.RandomNumberGenerator.GetInt32(100000, 1000000).ToString();
             var nomeFinal = string.IsNullOrWhiteSpace(nome) ? email.Split('@')[0] : nome.Trim();
             
             var novoUsuario = new Usuario
@@ -283,7 +286,10 @@ public class ValidadeService : IValidadeService
 
             if (_emailService != null)
             {
-                var link = $"/definir-senha?token={token}";
+                var link = !string.IsNullOrWhiteSpace(baseUrl)
+                    ? $"{baseUrl.TrimEnd('/')}/definir-senha?token={token}"
+                    : $"/definir-senha?token={token}";
+
                 _ = Task.Run(async () =>
                 {
                     try
@@ -375,6 +381,7 @@ public class ValidadeService : IValidadeService
         var cid = await ResolverContaIdAsync(contaId);
         await using var context = await _contextFactory.CreateDbContextAsync();
         return await context.Lojas
+            .AsNoTracking()
             .Where(l => l.ContaId == cid)
             .OrderBy(l => l.Nome)
             .ToListAsync();
@@ -384,7 +391,9 @@ public class ValidadeService : IValidadeService
     {
         var cid = await ResolverContaIdAsync(contaId);
         await using var context = await _contextFactory.CreateDbContextAsync();
-        return await context.Lojas.FirstOrDefaultAsync(l => l.Id == id && l.ContaId == cid);
+        return await context.Lojas
+            .AsNoTracking()
+            .FirstOrDefaultAsync(l => l.Id == id && l.ContaId == cid);
     }
 
     public async Task<Loja> CriarLojaAsync(Loja loja, int? contaId = null)
@@ -626,6 +635,7 @@ public class ValidadeService : IValidadeService
         await using var context = await _contextFactory.CreateDbContextAsync();
 
         var query = context.RegistrosValidade
+            .AsNoTracking()
             .Include(r => r.Produto)
             .Include(r => r.Loja)
             .Where(r => r.ContaId == cid && r.Status == "Ativo");
@@ -697,6 +707,7 @@ public class ValidadeService : IValidadeService
         await using var context = await _contextFactory.CreateDbContextAsync();
 
         var query = context.RegistrosValidade
+            .AsNoTracking()
             .Include(r => r.Produto)
             .Include(r => r.Loja)
             .Where(r => r.ContaId == cid && r.Status == "Baixado");

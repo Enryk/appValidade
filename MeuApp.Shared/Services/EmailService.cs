@@ -24,7 +24,11 @@ public class EmailService : IEmailService
 
     public async Task<bool> EnviarEmailAtivacaoAsync(string nome, string email, string linkAtivacao, string codigo)
     {
+        var nomeSanitizado = WebUtility.HtmlEncode(string.IsNullOrWhiteSpace(nome) ? "Usuário" : nome.Trim());
+        var linkSanitizado = WebUtility.HtmlEncode(linkAtivacao?.Trim() ?? string.Empty);
+        var codigoSanitizado = WebUtility.HtmlEncode(codigo?.Trim() ?? string.Empty);
         var assunto = "ValiData - Ative sua conta e defina sua senha";
+
         var corpoHtml = $@"
             <div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 28px; border: 1px solid #e2e8f0; border-radius: 16px; background-color: #ffffff;'>
                 <div style='text-align: center; margin-bottom: 24px;'>
@@ -32,13 +36,13 @@ public class EmailService : IEmailService
                     <p style='color: #64748b; font-size: 14px; margin-top: 4px;'>Controle Inteligente de Validades por Loja</p>
                 </div>
                 
-                <h3 style='color: #0f172a; font-size: 18px; margin-bottom: 12px;'>Olá, {nome}! 👋</h3>
+                <h3 style='color: #0f172a; font-size: 18px; margin-bottom: 12px;'>Olá, {nomeSanitizado}! 👋</h3>
                 <p style='color: #334155; line-height: 1.6; font-size: 15px;'>
                     Seu cadastro foi realizado no <strong>ValiData</strong>! Para validar o seu e-mail, ativar sua conta e cadastrar a sua senha pessoal, clique no botão abaixo:
                 </p>
 
                 <div style='text-align: center; margin: 32px 0;'>
-                    <a href='{linkAtivacao}' style='background: linear-gradient(135deg, #ff7a18 0%, #ea580c 100%); color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 10px; font-weight: bold; font-size: 16px; display: inline-block; box-shadow: 0 4px 12px rgba(234, 88, 12, 0.3);'>
+                    <a href='{linkSanitizado}' style='background: linear-gradient(135deg, #ff7a18 0%, #ea580c 100%); color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 10px; font-weight: bold; font-size: 16px; display: inline-block; box-shadow: 0 4px 12px rgba(234, 88, 12, 0.3);'>
                         🔑 Ativar Conta & Criar Senha
                     </a>
                 </div>
@@ -64,7 +68,11 @@ public class EmailService : IEmailService
 
     public async Task<bool> EnviarEmailConfirmacaoAsync(string nome, string email, string linkConfirmacao, string codigoConfirmacao)
     {
+        var nomeSanitizado = WebUtility.HtmlEncode(string.IsNullOrWhiteSpace(nome) ? "Usuário" : nome.Trim());
+        var linkSanitizado = WebUtility.HtmlEncode(linkConfirmacao?.Trim() ?? string.Empty);
+        var codigoSanitizado = WebUtility.HtmlEncode(codigoConfirmacao?.Trim() ?? string.Empty);
         var assunto = "ValiData - Confirme seu Cadastro";
+
         var corpoHtml = $@"
             <div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 16px; background-color: #ffffff;'>
                 <div style='text-align: center; margin-bottom: 24px;'>
@@ -72,19 +80,19 @@ public class EmailService : IEmailService
                     <p style='color: #64748b; font-size: 14px; margin-top: 4px;'>Controle Inteligente de Validades por Loja</p>
                 </div>
                 
-                <h3 style='color: #0f172a; font-size: 18px; margin-bottom: 12px;'>Olá, {nome}! 👋</h3>
+                <h3 style='color: #0f172a; font-size: 18px; margin-bottom: 12px;'>Olá, {nomeSanitizado}! 👋</h3>
                 <p style='color: #334155; line-height: 1.6; font-size: 15px;'>
                     Obrigado por se cadastrar no ValiData. Para ativar sua conta e acessar o sistema, utilize o código de segurança abaixo ou clique no link:
                 </p>
 
                 <div style='text-align: center; margin: 28px 0;'>
                     <div style='display: inline-block; background: #fff7ed; border: 2px dashed #ea580c; border-radius: 10px; padding: 12px 28px; font-size: 2rem; font-weight: 800; letter-spacing: 6px; color: #ea580c;'>
-                        {codigoConfirmacao}
+                        {codigoSanitizado}
                     </div>
                 </div>
 
                 <div style='text-align: center; margin-bottom: 28px;'>
-                    <a href='{linkConfirmacao}' style='background: linear-gradient(135deg, #ff7a18 0%, #ea580c 100%); color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 10px; font-weight: bold; font-size: 16px; display: inline-block; box-shadow: 0 4px 12px rgba(234, 88, 12, 0.3);'>
+                    <a href='{linkSanitizado}' style='background: linear-gradient(135deg, #ff7a18 0%, #ea580c 100%); color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 10px; font-weight: bold; font-size: 16px; display: inline-block; box-shadow: 0 4px 12px rgba(234, 88, 12, 0.3);'>
                         Validar Minha Conta Agora
                     </a>
                 </div>
@@ -100,7 +108,11 @@ public class EmailService : IEmailService
 
     public async Task<bool> EnviarEmailRecuperacaoSenhaAsync(string nome, string email, string linkRecuperacao, string codigo)
     {
+        var nomeSanitizado = WebUtility.HtmlEncode(string.IsNullOrWhiteSpace(nome) ? "Usuário" : nome.Trim());
+        var linkSanitizado = WebUtility.HtmlEncode(linkRecuperacao?.Trim() ?? string.Empty);
+        var codigoSanitizado = WebUtility.HtmlEncode(codigo?.Trim() ?? string.Empty);
         var assunto = "ValiData - Redefinição de Senha";
+
         var corpoHtml = $@"
             <div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 16px; background-color: #ffffff;'>
                 <div style='text-align: center; margin-bottom: 24px;'>
@@ -108,19 +120,19 @@ public class EmailService : IEmailService
                     <p style='color: #64748b; font-size: 14px; margin-top: 4px;'>Redefinição Segura de Senha</p>
                 </div>
                 
-                <h3 style='color: #0f172a; font-size: 18px; margin-bottom: 12px;'>Olá, {nome}!</h3>
+                <h3 style='color: #0f172a; font-size: 18px; margin-bottom: 12px;'>Olá, {nomeSanitizado}!</h3>
                 <p style='color: #334155; line-height: 1.6; font-size: 15px;'>
                     Recebemos uma solicitação para redefinir a senha da sua conta no ValiData. Use o código de 6 dígitos abaixo ou clique no link para cadastrar uma nova senha:
                 </p>
 
                 <div style='text-align: center; margin: 28px 0;'>
                     <div style='display: inline-block; background: #fff7ed; border: 2px dashed #ea580c; border-radius: 10px; padding: 12px 28px; font-size: 2rem; font-weight: 800; letter-spacing: 6px; color: #ea580c;'>
-                        {codigo}
+                        {codigoSanitizado}
                     </div>
                 </div>
 
                 <div style='text-align: center; margin-bottom: 28px;'>
-                    <a href='{linkRecuperacao}' style='background: linear-gradient(135deg, #ff7a18 0%, #ea580c 100%); color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 10px; font-weight: bold; font-size: 16px; display: inline-block; box-shadow: 0 4px 12px rgba(234, 88, 12, 0.3);'>
+                    <a href='{linkSanitizado}' style='background: linear-gradient(135deg, #ff7a18 0%, #ea580c 100%); color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 10px; font-weight: bold; font-size: 16px; display: inline-block; box-shadow: 0 4px 12px rgba(234, 88, 12, 0.3);'>
                         Redefinir Minha Senha
                     </a>
                 </div>
@@ -161,6 +173,8 @@ public class EmailService : IEmailService
             senderEmail = "onboarding@resend.dev";
         }
 
+        var emailMascarado = MascararEmail(destinatarioEmail);
+
         try
         {
             using var request = new HttpRequestMessage(HttpMethod.Post, "https://api.resend.com/emails");
@@ -182,18 +196,18 @@ public class EmailService : IEmailService
 
             if (response.IsSuccessStatusCode)
             {
-                _logger.LogInformation($"[RESEND ENVIADO COM SUCESSO] Para: {destinatarioEmail} | Assunto: {assunto} | Resposta: {responseBody}");
+                _logger.LogInformation($"[RESEND ENVIADO] Para: {emailMascarado} | Assunto: {assunto}");
                 return true;
             }
             else
             {
-                _logger.LogWarning($"[RESEND FALHA NA API] Status: {response.StatusCode} | Para: {destinatarioEmail} | Resposta: {responseBody}");
+                _logger.LogWarning($"[RESEND FALHA] Status: {response.StatusCode} | Para: {emailMascarado}");
                 return false;
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, $"[RESEND EXCEÇÃO] Erro ao enviar e-mail para {destinatarioEmail}: {ex.Message}");
+            _logger.LogError(ex, $"[RESEND EXCEÇÃO] Erro ao enviar e-mail para {emailMascarado}: {ex.Message}");
             return false;
         }
     }
@@ -213,9 +227,11 @@ public class EmailService : IEmailService
         var senderEmail = _configuration?["EmailSettings:SenderEmail"]
                           ?? smtpUser;
 
+        var emailMascarado = MascararEmail(destinatarioEmail);
+
         if (string.IsNullOrWhiteSpace(smtpHost) || string.IsNullOrWhiteSpace(smtpUser) || string.IsNullOrWhiteSpace(smtpPass))
         {
-            _logger.LogWarning($"[SMTP NÃO CONFIGURADO] Configure 'EmailSettings' no appsettings.json ou variáveis de ambiente para envio de e-mails para {destinatarioEmail}.");
+            _logger.LogWarning($"[SMTP NÃO CONFIGURADO] Configure 'EmailSettings' no appsettings.json ou variáveis de ambiente para envio de e-mails para {emailMascarado}.");
             return false;
         }
 
@@ -240,14 +256,23 @@ public class EmailService : IEmailService
             mail.To.Add(destinatarioEmail);
 
             await client.SendMailAsync(mail);
-            _logger.LogInformation($"[E-MAIL ENVIADO COM SUCESSO VIA SMTP] Para: {destinatarioEmail} | Assunto: {assunto}");
+            _logger.LogInformation($"[SMTP ENVIADO] Para: {emailMascarado} | Assunto: {assunto}");
             return true;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, $"[FALHA NO ENVIO SMTP] Erro ao enviar e-mail para {destinatarioEmail}: {ex.Message}");
+            _logger.LogError(ex, $"[SMTP FALHA] Erro ao enviar e-mail para {emailMascarado}: {ex.Message}");
             return false;
         }
 #pragma warning restore CA1416
+    }
+
+    private static string MascararEmail(string email)
+    {
+        if (string.IsNullOrWhiteSpace(email) || !email.Contains('@')) return "***";
+        var partes = email.Split('@');
+        var usuario = partes[0];
+        var prefixo = usuario.Length > 2 ? usuario[..2] : usuario[..1];
+        return $"{prefixo}***@{partes[1]}";
     }
 }

@@ -530,8 +530,8 @@
             return;
         }
 
-        var res = await ValidadeService.AdicionarMembroTimeAsync(novoMembroEmail, novoMembroNome, novoMembroPapel);
-        feedbackMensagem = $"Colaborador '{res.Nome}' adicionado à equipe com sucesso! Senha inicial: 123 (será solicitada uma nova senha pessoal no primeiro acesso).";
+        var res = await ValidadeService.AdicionarMembroTimeAsync(novoMembroEmail, novoMembroNome, novoMembroPapel, baseUrl: Navigation.BaseUri);
+        feedbackMensagem = $"Colaborador '{res.Nome}' adicionado à equipe com sucesso! Um e-mail com o link de ativação foi enviado para o colaborador cadastrar sua senha.";
         feedbackTipo = "success";
 
         novoMembroEmail = string.Empty;

@@ -1,4 +1,5 @@
 @inherits LayoutComponentBase
+@implements IDisposable
 @namespace MeuApp.Shared.Layout
 
 @if (verificandoAuth)
@@ -55,8 +56,8 @@ else if (autenticado)
     protected override async Task OnInitializedAsync()
     {
         ThemeService.OnThemeChanged += HandleThemeChanged;
+        AuthService.OnAuthStateChanged += HandleAuthStateChanged;
         await VerificarAutenticacao();
-        AuthService.OnAuthStateChanged += async () => await VerificarAutenticacao();
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -70,6 +71,17 @@ else if (autenticado)
     private async void HandleThemeChanged()
     {
         await InvokeAsync(StateHasChanged);
+    }
+
+    private async void HandleAuthStateChanged()
+    {
+        await InvokeAsync(VerificarAutenticacao);
+    }
+
+    public void Dispose()
+    {
+        ThemeService.OnThemeChanged -= HandleThemeChanged;
+        AuthService.OnAuthStateChanged -= HandleAuthStateChanged;
     }
 
     private async Task VerificarAutenticacao()
