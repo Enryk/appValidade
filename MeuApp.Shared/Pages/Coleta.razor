@@ -40,7 +40,7 @@
             <p style="color: #64748b; font-size: 0.95rem; max-width: 480px; margin: 0 auto 20px auto; line-height: 1.5;">
                 Para começar a bipar produtos e registrar validades, cadastre a sua primeira filial ou unidade em Gestão de Lojas.
             </p>
-            <a href="lojas" style="display: inline-block; background: #6366f1; color: #fff; text-decoration: none; padding: 12px 24px; border-radius: 10px; font-weight: 700; font-size: 0.95rem;">
+            <a href="lojas" style="display: inline-block; background: linear-gradient(135deg, #ff7a18 0%, #ea580c 100%); color: #fff; text-decoration: none; padding: 12px 24px; border-radius: 10px; font-weight: 700; font-size: 0.95rem; box-shadow: 0 4px 12px rgba(234, 88, 12, 0.25);">
                 🏬 Cadastrar Minha Primeira Loja
             </a>
         </div>
@@ -50,18 +50,18 @@
         @* Campo de Bipagem com Autofocus *@
         <div class="scanner-card">
         <form @onsubmit="BuscarOuBipar" class="scanner-form">
-            <div class="scanner-input-group">
+            <div class="scanner-input-wrapper">
                 <span class="scanner-icon">📟</span>
                 <input @ref="barcodeInputRef"
                        type="text" 
                        class="scanner-input" 
-                       placeholder="Bipar código de barras ou digitar (pressione Enter)..." 
+                       placeholder="Bipar código de barras ou digitar..." 
                        @bind="codigoBarrasInput" 
                        autofocus />
-                <button type="submit" class="btn-buscar">
-                    Buscar / Bipar
-                </button>
             </div>
+            <button type="submit" class="btn-buscar">
+                Buscar / Bipar
+            </button>
         </form>
 
         @if (buscou && (produtoEncontrado != null || modoNovoProdutoNoCatalogo))

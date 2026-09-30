@@ -1,7 +1,6 @@
 @page "/esqueci-senha"
 @layout MeuApp.Shared.Layout.AuthLayout
 @inject IAuthService AuthService
-@inject IEmailService EmailService
 @inject NavigationManager Navigation
 
 <div class="auth-card">
@@ -29,27 +28,12 @@
 
     @if (emailEnviado)
     {
-        @if (ultimoEmailSimulado != null)
-        {
-            <div class="simulacao-box">
-                <div class="simulacao-header">
-                    <span>💡 Modo Demonstração (Código de Recuperação)</span>
-                </div>
-                <p class="simulacao-desc">
-                    Código gerado para testes locais imediatos:
-                </p>
-                <div class="simulacao-codigo-area">
-                    <span class="simulacao-codigo">@ultimoEmailSimulado.CodigoConfirmacao</span>
-                </div>
-            </div>
-        }
-
         <div class="prosseguir-box">
             <p class="prosseguir-desc">
-                Enviamos o código para <strong>@email</strong>. Clique abaixo para informar o código e cadastrar sua nova senha:
+                Enviamos as instruções e o código para <strong>@email</strong>. Acesse seu e-mail e clique no botão abaixo para cadastrar sua nova senha:
             </p>
             <button type="button" class="btn-auth-primary" @onclick="IrParaRedefinicao">
-                <span>Digitar Código e Nova Senha →</span>
+                <span>Digitar Código & Nova Senha →</span>
             </button>
         </div>
     }
@@ -68,18 +52,18 @@
                            required 
                            autofocus />
                 </div>
-                <span class="field-hint">Enviaremos um código de 6 dígitos e um link para este endereço.</span>
+                <span class="field-hint">Enviaremos um código de 6 dígitos e um link seguro para este endereço.</span>
             </div>
 
             <button type="submit" class="btn-auth-primary" disabled="@carregando">
                 @if (carregando)
                 {
                     <span class="spinner-sm"></span>
-                    <span>Enviando código...</span>
+                    <span>Enviando e-mail...</span>
                 }
                 else
                 {
-                    <span>Enviar Código de Redefinição</span>
+                    <span>Enviar E-mail de Redefinição</span>
                 }
             </button>
         </form>
@@ -99,7 +83,6 @@
     private bool emailEnviado = false;
     private string? mensagemErro;
     private string? mensagemSucesso;
-    private UltimoEmailEnviado? ultimoEmailSimulado;
 
     private async Task EnviarSolicitacao()
     {
@@ -120,7 +103,6 @@
             {
                 emailEnviado = true;
                 mensagemSucesso = res.Mensagem;
-                ultimoEmailSimulado = EmailService.ObterUltimoEmailSimulado();
             }
             else
             {

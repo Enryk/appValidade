@@ -35,10 +35,11 @@
 }
 
 .input-label {
-    font-size: 0.75rem;
+    font-size: 0.74rem;
     font-weight: 700;
     color: #475569;
     text-transform: uppercase;
+    letter-spacing: 0.25px;
 }
 
 .form-select-custom {
@@ -61,25 +62,45 @@
     margin-bottom: 24px;
 }
 
-.scanner-input-group {
+.scanner-form {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+}
+
+.scanner-input-wrapper {
+    flex: 1;
+    min-width: 0;
     display: flex;
     align-items: center;
     gap: 10px;
     background: #f8fafc;
-    border: 2px solid #6366f1;
+    border: 2px solid #f97316;
     border-radius: 12px;
-    padding: 4px 8px 4px 14px;
+    padding: 4px 10px 4px 14px;
+    box-sizing: border-box;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.scanner-input-wrapper:focus-within {
+    border-color: #ea580c;
+    box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.2);
+    background: #ffffff;
 }
 
 .scanner-icon {
-    font-size: 1.4rem;
+    font-size: 1.35rem;
+    flex-shrink: 0;
 }
 
 .scanner-input {
     flex: 1;
+    min-width: 0;
+    width: 100%;
     border: none;
     background: transparent;
-    font-size: 1.05rem;
+    font-size: 1rem;
     font-weight: 600;
     color: #0f172a;
     outline: none;
@@ -87,20 +108,29 @@
 }
 
 .btn-buscar {
-    background: #6366f1;
+    background: linear-gradient(135deg, #ff7a18 0%, #ea580c 100%);
     color: #ffffff;
     border: none;
-    padding: 10px 20px;
-    border-radius: 8px;
+    padding: 10px 22px;
+    border-radius: 10px;
     font-size: 0.92rem;
     font-weight: 700;
     cursor: pointer;
-    min-height: 44px;
+    min-height: 46px;
     white-space: nowrap;
+    flex-shrink: 0;
+    box-shadow: 0 2px 8px rgba(234, 88, 12, 0.25);
+    transition: all 0.15s ease, transform 0.1s ease;
 }
 
 .btn-buscar:hover {
-    background: #4f46e5;
+    background: #c2410c;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(234, 88, 12, 0.35);
+}
+
+.btn-buscar:active {
+    transform: scale(0.98);
 }
 
 .scanner-actions {
@@ -152,7 +182,8 @@
 
 /* Produto Encontrado */
 .produto-header-card {
-    background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%);
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+    border: 1px solid #334155;
     color: #ffffff;
     border-radius: 16px;
     padding: 20px;
@@ -160,7 +191,7 @@
     justify-content: space-between;
     align-items: center;
     margin-bottom: 20px;
-    box-shadow: 0 4px 15px rgba(49, 46, 129, 0.15);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
 }
 
 .badge-row {
@@ -201,8 +232,9 @@
 }
 
 .lotes-count-badge {
-    background: #ffffff;
-    color: #312e81;
+    background: #fff7ed;
+    color: #ea580c;
+    border: 1px solid #fed7aa;
     font-weight: 700;
     padding: 6px 14px;
     border-radius: 20px;
@@ -326,9 +358,11 @@
 }
 
 .field-label {
-    font-size: 0.78rem;
+    font-size: 0.74rem;
     font-weight: 700;
     color: #475569;
+    text-transform: uppercase;
+    letter-spacing: 0.25px;
 }
 
 .form-input {
@@ -341,7 +375,8 @@
 }
 
 .form-input:focus {
-    border-color: #6366f1;
+    border-color: #f97316;
+    box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.15);
 }
 
 .field-group-checkbox {
@@ -379,11 +414,11 @@
 }
 
 .lojas-alvo-label {
-    font-size: 0.8rem;
+    font-size: 0.74rem;
     font-weight: 700;
-    color: #334155;
+    color: #475569;
     text-transform: uppercase;
-    letter-spacing: 0.4px;
+    letter-spacing: 0.25px;
 }
 
 .btn-selecionar-todas-lojas {
@@ -399,14 +434,14 @@
 }
 
 .btn-selecionar-todas-lojas:hover {
-    border-color: #6366f1;
-    color: #6366f1;
+    border-color: #ea580c;
+    color: #ea580c;
 }
 
 .btn-selecionar-todas-lojas.todas-ativas {
-    background: #eef2ff;
-    border-color: #6366f1;
-    color: #4f46e5;
+    background: #fff7ed;
+    border-color: #f97316;
+    color: #c2410c;
 }
 
 .lojas-chips-grid {
@@ -435,18 +470,18 @@
 }
 
 .loja-chip-toggle.loja-chip-selected {
-    border-color: #6366f1;
-    background: #f5f3ff;
-    color: #4f46e5;
+    border-color: #ea580c;
+    background: #fff7ed;
+    color: #c2410c;
 }
 
 .loja-chip-toggle input[type="checkbox"] {
-    accent-color: #6366f1;
+    accent-color: #ea580c;
     cursor: pointer;
 }
 
 .btn-adicionar-lote {
-    background: #10b981;
+    background: linear-gradient(135deg, #ff7a18 0%, #ea580c 100%);
     color: #ffffff;
     border: none;
     padding: 12px 22px;
@@ -456,7 +491,13 @@
     cursor: pointer;
     min-height: 44px;
     align-self: flex-start;
-    transition: background-color 0.15s ease;
+    box-shadow: 0 2px 8px rgba(234, 88, 12, 0.25);
+    transition: all 0.15s ease;
+}
+
+.btn-adicionar-lote:hover {
+    background: #c2410c;
+    transform: translateY(-1px);
 }
 
 .btn-adicionar-lote:hover {
@@ -484,8 +525,8 @@
 
 /* Novo Produto (Cenário A) */
 .card-aviso-novo {
-    background: #e0e7ff;
-    border: 1px solid #c7d2fe;
+    background: #fff7ed;
+    border: 1px solid #fed7aa;
     border-radius: 14px;
     padding: 16px;
     display: flex;
@@ -500,13 +541,13 @@
 .aviso-title {
     font-size: 1.05rem;
     font-weight: 700;
-    color: #3730a3;
+    color: #c2410c;
     margin: 0;
 }
 
 .aviso-text {
     font-size: 0.85rem;
-    color: #4338ca;
+    color: #9a3412;
     margin: 3px 0 0 0;
 }
 
@@ -552,7 +593,7 @@
 }
 
 .btn-salvar-produto {
-    background: #6366f1;
+    background: linear-gradient(135deg, #ff7a18 0%, #ea580c 100%);
     color: #ffffff;
     border: none;
     padding: 10px 22px;
@@ -560,8 +601,355 @@
     font-weight: 700;
     cursor: pointer;
     min-height: 44px;
+    box-shadow: 0 2px 8px rgba(234, 88, 12, 0.25);
+    transition: all 0.15s ease;
 }
 
 .btn-salvar-produto:hover {
-    background: #4f46e5;
+    background: #c2410c;
+    transform: translateY(-1px);
+}
+}
+
+/* ========================================================
+   RESPONSIVIDADE COMPLETA: TELAS PEQUENAS E MOBILE (< 680px)
+   ======================================================== */
+@media (max-width: 680px) {
+    .coleta-page {
+        padding: 12px 12px 32px 12px;
+    }
+
+    .page-title {
+        font-size: 1.35rem;
+    }
+
+    .coleta-header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+    }
+
+    .store-selector-box {
+        width: 100%;
+        min-width: 0;
+    }
+
+    .form-select-custom {
+        width: 100%;
+    }
+
+    .scanner-card, .section-box, .form-cadastro-card {
+        padding: 16px 14px;
+        border-radius: 14px;
+        margin-bottom: 16px;
+    }
+
+    .scanner-form {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+    }
+
+    .scanner-input-wrapper {
+        width: 100%;
+        padding: 6px 12px;
+    }
+
+    .btn-buscar {
+        width: 100%;
+        justify-content: center;
+        text-align: center;
+    }
+
+    .produto-header-card {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+        padding: 16px;
+    }
+
+    .lotes-count-badge {
+        align-self: flex-start;
+    }
+
+    .produto-nome {
+        font-size: 1.15rem;
+        word-break: break-word;
+    }
+
+    .tabela-responsive-wrapper {
+        width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        margin: 0 -4px;
+        padding-bottom: 4px;
+    }
+
+    .tabela-lotes {
+        min-width: 520px;
+    }
+
+    .form-novo-lote .form-input {
+        max-width: 100%;
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    .btn-adicionar-lote {
+        width: 100%;
+        justify-content: center;
+        text-align: center;
+        align-self: stretch;
+    }
+
+    .lojas-alvo-header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+    }
+
+    .btn-selecionar-todas-lojas {
+        width: 100%;
+        text-align: center;
+    }
+
+    .card-aviso-aproveitamento, .card-aviso-novo {
+        flex-direction: column;
+        gap: 10px;
+        padding: 14px;
+    }
+
+    .form-actions {
+        flex-direction: column-reverse;
+        gap: 10px;
+        width: 100%;
+    }
+
+    .btn-cancelar-novo, .btn-salvar-produto {
+        width: 100%;
+        justify-content: center;
+        text-align: center;
+    }
+}
+
+@media (max-width: 400px) {
+    .lojas-chips-grid {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .loja-chip-toggle {
+        width: 100%;
+        box-sizing: border-box;
+    }
+}
+
+/* ==========================================================================
+   TEMA ESCURO - COLETA & BIPAGEM
+   ========================================================================== */
+:root[data-theme="dark"] .coleta-page {
+    color: #f8fafc;
+}
+
+:root[data-theme="dark"] .page-title {
+    color: #ffffff;
+}
+
+:root[data-theme="dark"] .page-subtitle {
+    color: #cbd5e1;
+}
+
+:root[data-theme="dark"] .scanner-card,
+:root[data-theme="dark"] .card-formulario,
+:root[data-theme="dark"] .produtos-coletados-card,
+:root[data-theme="dark"] .section-box,
+:root[data-theme="dark"] .form-cadastro-card,
+:root[data-theme="dark"] .novo-lote-box,
+:root[data-theme="dark"] .aproveitamento-box,
+:root[data-theme="dark"] .empty-state-card {
+    background: #131b2e !important;
+    border-color: #243048 !important;
+    color: #f8fafc !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+
+:root[data-theme="dark"] .empty-state-card h2,
+:root[data-theme="dark"] .section-title {
+    color: #ffffff !important;
+}
+
+:root[data-theme="dark"] .empty-state-card p {
+    color: #cbd5e1 !important;
+}
+
+:root[data-theme="dark"] .lojas-alvo-container {
+    background: #090d16 !important;
+    border-color: #243048 !important;
+}
+
+:root[data-theme="dark"] .lojas-alvo-label,
+:root[data-theme="dark"] .input-label,
+:root[data-theme="dark"] .field-label,
+:root[data-theme="dark"] .checkbox-label {
+    color: #cbd5e1 !important;
+}
+
+:root[data-theme="dark"] .form-input,
+:root[data-theme="dark"] .form-select-custom {
+    background: #090d16 !important;
+    border-color: #243048 !important;
+    color: #f8fafc !important;
+}
+
+:root[data-theme="dark"] .form-input:focus,
+:root[data-theme="dark"] .form-select-custom:focus {
+    border-color: #f97316 !important;
+    box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.2) !important;
+}
+
+:root[data-theme="dark"] .form-input-readonly {
+    background: #1a2234 !important;
+    color: #cbd5e1 !important;
+    border-color: #243048 !important;
+}
+
+:root[data-theme="dark"] .scanner-input-wrapper {
+    background: #090d16 !important;
+    border-color: #f97316 !important;
+}
+
+:root[data-theme="dark"] .scanner-input-wrapper:focus-within {
+    border-color: #fb923c !important;
+    box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.25) !important;
+}
+
+:root[data-theme="dark"] .scanner-input {
+    background: transparent !important;
+    color: #ffffff !important;
+}
+
+:root[data-theme="dark"] .scanner-input::placeholder {
+    color: #64748b;
+}
+
+:root[data-theme="dark"] .btn-novo-scan,
+:root[data-theme="dark"] .btn-cancelar-novo {
+    background: #131b2e !important;
+    border-color: #243048 !important;
+    color: #cbd5e1 !important;
+}
+
+:root[data-theme="dark"] .btn-novo-scan:hover,
+:root[data-theme="dark"] .btn-cancelar-novo:hover {
+    background: #1a2234 !important;
+    color: #ffffff !important;
+}
+
+:root[data-theme="dark"] .loja-chip-toggle {
+    background: #090d16 !important;
+    border-color: #243048 !important;
+    color: #cbd5e1 !important;
+}
+
+:root[data-theme="dark"] .loja-chip-toggle:hover {
+    background: #1a2234 !important;
+}
+
+:root[data-theme="dark"] .loja-chip-toggle.loja-chip-selected {
+    background: rgba(249, 115, 22, 0.18) !important;
+    border-color: #f97316 !important;
+    color: #ffedd5 !important;
+}
+
+:root[data-theme="dark"] .btn-selecionar-todas-lojas {
+    background: #090d16 !important;
+    border-color: #243048 !important;
+    color: #cbd5e1 !important;
+}
+
+:root[data-theme="dark"] .btn-selecionar-todas-lojas:hover {
+    background: #1a2234 !important;
+    color: #ffffff !important;
+}
+
+:root[data-theme="dark"] .btn-selecionar-todas-lojas.todas-ativas {
+    background: rgba(249, 115, 22, 0.18) !important;
+    border-color: #f97316 !important;
+    color: #fb923c !important;
+}
+
+:root[data-theme="dark"] .card-aviso-aproveitamento {
+    background: rgba(16, 185, 129, 0.12) !important;
+    border-color: rgba(16, 185, 129, 0.3) !important;
+}
+
+:root[data-theme="dark"] .card-aviso-aproveitamento .aviso-title {
+    color: #34d399 !important;
+}
+
+:root[data-theme="dark"] .card-aviso-aproveitamento .aviso-text {
+    color: #a7f3d0 !important;
+}
+
+:root[data-theme="dark"] .card-aviso-novo {
+    background: rgba(249, 115, 22, 0.12) !important;
+    border-color: rgba(249, 115, 22, 0.3) !important;
+}
+
+:root[data-theme="dark"] .card-aviso-novo .aviso-title {
+    color: #fb923c !important;
+}
+
+:root[data-theme="dark"] .card-aviso-novo .aviso-text {
+    color: #fed7aa !important;
+}
+
+:root[data-theme="dark"] .tabela-responsive-wrapper,
+:root[data-theme="dark"] .tabela-coletas-wrapper {
+    border-color: #243048 !important;
+}
+
+:root[data-theme="dark"] .tabela-lotes th,
+:root[data-theme="dark"] .tabela-coletas th {
+    background-color: #090d16 !important;
+    color: #e2e8f0 !important;
+    border-bottom: 2px solid #243048 !important;
+}
+
+:root[data-theme="dark"] .tabela-lotes td,
+:root[data-theme="dark"] .tabela-coletas td {
+    color: #cbd5e1 !important;
+    border-bottom: 1px solid #243048 !important;
+}
+
+:root[data-theme="dark"] .tabela-lotes tr:hover,
+:root[data-theme="dark"] .tabela-coletas tr:hover {
+    background-color: rgba(255, 255, 255, 0.03) !important;
+}
+
+:root[data-theme="dark"] .row-vencido {
+    background: rgba(239, 68, 68, 0.15) !important;
+}
+
+:root[data-theme="dark"] .data-destaque {
+    color: #ffffff !important;
+}
+
+:root[data-theme="dark"] .texto-prazo {
+    color: #cbd5e1 !important;
+}
+
+:root[data-theme="dark"] .prazo-alerta {
+    color: #f87171 !important;
+    font-weight: 700;
+}
+
+:root[data-theme="dark"] .badge-promo-nao {
+    background: #1a2234 !important;
+    color: #cbd5e1 !important;
+}
+
+:root[data-theme="dark"] .badge-promo-sim {
+    background: rgba(245, 158, 11, 0.2) !important;
+    color: #fbbf24 !important;
 }

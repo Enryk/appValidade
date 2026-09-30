@@ -1,0 +1,251 @@
+@page "/definir-senha"
+@layout MeuApp.Shared.Layout.AuthLayout
+@inject IAuthService AuthService
+@inject NavigationManager Navigation
+
+<div class="auth-card">
+    <div class="auth-header">
+        <div class="auth-brand-badge badge-key">
+            <span class="auth-brand-icon">🔑</span>
+        </div>
+        <h1 class="auth-title">Definir Senha</h1>
+        <p class="auth-subtitle">Crie sua senha segura para ativar sua conta no ValiData</p>
+    </div>
+
+    @if (validandoToken)
+    {
+        <div class="auth-loading">
+            <div class="spinner-lg"></div>
+            <p>Validando link de acesso...</p>
+        </div>
+    }
+    else if (!tokenValido)
+    {
+        <div class="auth-alert alert-danger">
+            <span>⚠️ @mensagemErro</span>
+        </div>
+        <div class="auth-footer">
+            <a href="/cadastrar" class="btn-auth-secondary">Fazer novo cadastro</a>
+            <a href="/login" class="footer-link" style="display: block; margin-top: 14px;">Ir para o Login</a>
+        </div>
+    }
+    else if (senhaDefinidaComSucesso)
+    {
+        <div class="auth-alert alert-success">
+            <span>🎉 @mensagemSucesso</span>
+            <p style="margin: 8px 0 0 0; font-size: 0.85rem; font-weight: normal; color: #166534;">
+                Sua senha foi criptografada e sua conta está ativada. Redirecionando para o sistema...
+            </p>
+        </div>
+        <div style="text-align: center; margin-top: 20px;">
+            <button type="button" class="btn-auth-primary" @onclick='() => Navigation.NavigateTo("/", forceLoad: true)'>
+                Entrar no ValiData Agora →
+            </button>
+        </div>
+    }
+    else
+    {
+        @if (!string.IsNullOrEmpty(mensagemErro))
+        {
+            <div class="auth-alert alert-danger">
+                <span>⚠️ @mensagemErro</span>
+            </div>
+        }
+
+        <div class="user-welcome-box">
+            <span class="welcome-label">Ativando acesso para:</span>
+            <div class="welcome-user">
+                <strong>@(usuario?.Nome ?? "Colaborador")</strong>
+                <span class="welcome-email">@(usuario?.Email ?? "")</span>
+            </div>
+        </div>
+
+        <form @onsubmit="SalvarSenha" class="auth-form">
+            <div class="form-group">
+                <label class="form-label" for="def-nova-senha">Nova Senha</label>
+                <div class="input-wrapper">
+                    <span class="input-icon">🔒</span>
+                    <input id="def-nova-senha" 
+                           type="@(mostrarSenha ? "text" : "password")" 
+                           class="form-control" 
+                           placeholder="Digite sua senha" 
+                           @bind="novaSenha" 
+                           @bind:event="oninput"
+                           required 
+                           autofocus />
+                    <button type="button" 
+                            class="btn-toggle-senha" 
+                            @onclick="() => mostrarSenha = !mostrarSenha"
+                            title="@(mostrarSenha ? "Ocultar senha" : "Ver senha")">
+                        @(mostrarSenha ? "👁️" : "👁️‍🗨️")
+                    </button>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="def-conf-senha">Confirmar Nova Senha</label>
+                <div class="input-wrapper">
+                    <span class="input-icon">🔑</span>
+                    <input id="def-conf-senha" 
+                           type="@(mostrarSenha ? "text" : "password")" 
+                           class="form-control" 
+                           placeholder="Repita a nova senha" 
+                           @bind="confirmacaoSenha" 
+                           @bind:event="oninput"
+                           required />
+                </div>
+            </div>
+
+            <!-- Checklist Visual Interativo de Regras da Senha -->
+            <div class="regras-senha-box">
+                <div class="regras-title">Regras obrigatórias da senha:</div>
+                <ul class="regras-lista">
+                    <li class="@(TemMinimoCaracteres ? "regra-atendida" : "regra-pendente")">
+                        <span class="regra-icon">@(TemMinimoCaracteres ? "✓" : "○")</span>
+                        <span>Mínimo de 6 dígitos</span>
+                    </li>
+                    <li class="@(TemMaiuscula ? "regra-atendida" : "regra-pendente")">
+                        <span class="regra-icon">@(TemMaiuscula ? "✓" : "○")</span>
+                        <span>Pelo menos 1 letra Maiúscula (A-Z)</span>
+                    </li>
+                    <li class="@(TemMinuscula ? "regra-atendida" : "regra-pendente")">
+                        <span class="regra-icon">@(TemMinuscula ? "✓" : "○")</span>
+                        <span>Pelo menos 1 letra Minúscula (a-z)</span>
+                    </li>
+                    <li class="@(TemEspecial ? "regra-atendida" : "regra-pendente")">
+                        <span class="regra-icon">@(TemEspecial ? "✓" : "○")</span>
+                        <span>Pelo menos 1 caractere especial (!, @@, #, $, %, etc.)</span>
+                    </li>
+                    @if (!string.IsNullOrEmpty(confirmacaoSenha))
+                    {
+                        <li class="@(SenhasCoincidem ? "regra-atendida" : "regra-pendente")">
+                            <span class="regra-icon">@(SenhasCoincidem ? "✓" : "○")</span>
+                            <span>As senhas coincidem</span>
+                        </li>
+                    }
+                </ul>
+            </div>
+
+            <button type="submit" class="btn-auth-primary" disabled="@(salvando || !FormularioValido)">
+                @if (salvando)
+                {
+                    <span class="spinner-sm"></span>
+                    <span>Criptografando e Ativando...</span>
+                }
+                else
+                {
+                    <span>Ativar Minha Conta & Entrar</span>
+                }
+            </button>
+        </form>
+    }
+
+    <div class="auth-footer">
+        <p class="footer-text">
+            Já possui acesso configurado? 
+            <a href="/login" class="footer-link">Ir para o Login</a>
+        </p>
+    </div>
+</div>
+
+@code {
+    [SupplyParameterFromQuery]
+    public string? Token { get; set; }
+
+    private bool validandoToken = true;
+    private bool tokenValido = false;
+    private bool salvando = false;
+    private bool senhaDefinidaComSucesso = false;
+    private bool mostrarSenha = false;
+
+    private Usuario? usuario;
+    private string novaSenha = "";
+    private string confirmacaoSenha = "";
+    private string? mensagemErro;
+    private string? mensagemSucesso;
+
+    private bool TemMinimoCaracteres => novaSenha.Length >= 6;
+    private bool TemMaiuscula => novaSenha.Any(char.IsUpper);
+    private bool TemMinuscula => novaSenha.Any(char.IsLower);
+    private bool TemEspecial => novaSenha.Any(ch => !char.IsLetterOrDigit(ch));
+    private bool SenhasCoincidem => !string.IsNullOrEmpty(novaSenha) && novaSenha == confirmacaoSenha;
+    private bool FormularioValido => TemMinimoCaracteres && TemMaiuscula && TemMinuscula && TemEspecial && SenhasCoincidem;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (string.IsNullOrWhiteSpace(Token))
+        {
+            validandoToken = false;
+            tokenValido = false;
+            mensagemErro = "Token de ativação não encontrado no link. Verifique se copiou o link completo do seu e-mail.";
+            return;
+        }
+
+        try
+        {
+            var res = await AuthService.ValidarTokenAtivacaoAsync(Token);
+            validandoToken = false;
+            if (res.Sucesso && res.Usuario != null)
+            {
+                tokenValido = true;
+                usuario = res.Usuario;
+            }
+            else
+            {
+                tokenValido = false;
+                mensagemErro = res.Mensagem;
+            }
+        }
+        catch (Exception ex)
+        {
+            validandoToken = false;
+            tokenValido = false;
+            mensagemErro = "Erro ao validar o link de ativação: " + ex.Message;
+        }
+    }
+
+    private async Task SalvarSenha()
+    {
+        if (string.IsNullOrWhiteSpace(Token)) return;
+
+        mensagemErro = null;
+
+        if (!FormularioValido)
+        {
+            if (!SenhasCoincidem)
+                mensagemErro = "As senhas digitadas não coincidem.";
+            else
+                mensagemErro = "A senha não atende a todos os requisitos obrigatórios.";
+            return;
+        }
+
+        salvando = true;
+        try
+        {
+            var res = await AuthService.AtivarContaEDefinirSenhaAsync(Token, novaSenha);
+            if (res.Sucesso)
+            {
+                senhaDefinidaComSucesso = true;
+                mensagemSucesso = res.Mensagem;
+                // Redireciona automaticamente após 2 segundos
+                _ = Task.Run(async () =>
+                {
+                    await Task.Delay(2000);
+                    Navigation.NavigateTo("/", forceLoad: true);
+                });
+            }
+            else
+            {
+                mensagemErro = res.Mensagem;
+            }
+        }
+        catch (Exception ex)
+        {
+            mensagemErro = "Erro ao salvar senha: " + ex.Message;
+        }
+        finally
+        {
+            salvando = false;
+        }
+    }
+}

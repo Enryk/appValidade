@@ -11,11 +11,16 @@ public class ValidadeService : IValidadeService
 {
     private readonly IDbContextFactory<AppDbContext> _contextFactory;
     private readonly IAuthService _authService;
+    private readonly IEmailService? _emailService;
 
-    public ValidadeService(IDbContextFactory<AppDbContext> contextFactory, IAuthService authService)
+    public ValidadeService(
+        IDbContextFactory<AppDbContext> contextFactory, 
+        IAuthService authService,
+        IEmailService? emailService = null)
     {
         _contextFactory = contextFactory;
         _authService = authService;
+        _emailService = emailService;
     }
 
     public async Task<int> ObterContaIdAtualAsync()
@@ -42,13 +47,15 @@ public class ValidadeService : IValidadeService
     public async Task InicializarBancoESeedAsync()
     {
         await using var context = await _contextFactory.CreateDbContextAsync();
-        await context.Database.EnsureCreatedAsync();
 
-        // Migração defensiva para bancos SQLite existentes
-        try
+        // Migração defensiva apenas para bancos SQLite locais existentes
+        if (context.Database.ProviderName?.Contains("Sqlite", StringComparison.OrdinalIgnoreCase) == true)
         {
-            var conn = context.Database.GetDbConnection();
-            await conn.OpenAsync();
+            await context.Database.EnsureCreatedAsync();
+            try
+            {
+                var conn = context.Database.GetDbConnection();
+                await conn.OpenAsync();
 
             // 1. Criação defensiva das tabelas Contas e MembrosTime
             using var cmdCreateContas = conn.CreateCommand();
@@ -165,10 +172,34 @@ public class ValidadeService : IValidadeService
         catch
         {
         }
-
-        // ATENÇÃO: NÃO SEEDAR LOJAS OU PRODUTOS AUTOMATICAMENTE!
-        // Novos usuários cadastrados na tela de início devem iniciar 100% do zero.
     }
+    else
+    {
+        // PostgreSQL (Supabase) ou outro banco relacional
+        try
+        {
+            var conn = context.Database.GetDbConnection();
+            await conn.OpenAsync();
+            using var cmd = conn.CreateCommand();
+            cmd.CommandText = "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public';";
+            var count = Convert.ToInt32(await cmd.ExecuteScalarAsync());
+            if (count == 0)
+            {
+                var script = context.Database.GenerateCreateScript();
+                using var cmdDdl = conn.CreateCommand();
+                cmdDdl.CommandText = script;
+                await cmdDdl.ExecuteNonQueryAsync();
+            }
+        }
+        catch
+        {
+            await context.Database.EnsureCreatedAsync();
+        }
+    }
+
+    // ATENÇÃO: NÃO SEEDAR LOJAS OU PRODUTOS AUTOMATICAMENTE!
+    // Novos usuários cadastrados na tela de início devem iniciar 100% do zero.
+}
 
     // ==========================================
     // GESTÃO DE TIMES E CONTA
@@ -221,7 +252,7 @@ public class ValidadeService : IValidadeService
         context.MembrosTime.Add(novo);
 
         // Se o usuário do e-mail já estiver cadastrado no sistema, associa ele à conta do time.
-        // Se ainda não existir, cria o usuário pré-cadastrado com senha inicial "123" e DeveAlterarSenha = true
+        // Se ainda não existir, cria o usuário com token de ativação para definir a própria senha
         var usuarioExistente = await context.Usuarios.FirstOrDefaultAsync(u => u.Email == email);
         if (usuarioExistente != null)
         {
@@ -229,20 +260,39 @@ public class ValidadeService : IValidadeService
         }
         else
         {
-            AuthService.CriarHashSenha("123", out var hash, out var salt);
+            var token = Guid.NewGuid().ToString("N");
+            var codigo = Random.Shared.Next(100000, 999999).ToString();
+            var nomeFinal = string.IsNullOrWhiteSpace(nome) ? email.Split('@')[0] : nome.Trim();
+            
             var novoUsuario = new Usuario
             {
-                Nome = string.IsNullOrWhiteSpace(nome) ? email.Split('@')[0] : nome.Trim(),
+                Nome = nomeFinal,
                 Email = email,
                 ContaId = cid,
-                SenhaHash = hash,
-                SenhaSalt = salt,
-                EmailConfirmado = true,
+                SenhaHash = "",
+                SenhaSalt = "",
+                EmailConfirmado = false,
                 DeveAlterarSenha = true,
+                TokenConfirmacao = token,
+                CodigoConfirmacao = codigo,
+                TokenExpiracao = DateTime.Now.AddHours(48),
                 DataCriacao = DateTime.Now,
                 Ativo = true
             };
             context.Usuarios.Add(novoUsuario);
+
+            if (_emailService != null)
+            {
+                var link = $"/definir-senha?token={token}";
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        await _emailService.EnviarEmailAtivacaoAsync(nomeFinal, email, link, codigo);
+                    }
+                    catch { }
+                });
+            }
         }
 
         await context.SaveChangesAsync();
@@ -276,6 +326,44 @@ public class ValidadeService : IValidadeService
         context.MembrosTime.Remove(membro);
         await context.SaveChangesAsync();
         return true;
+    }
+
+    public async Task<string> ObterPapelUsuarioAtualAsync()
+    {
+        var usuario = await _authService.ObterUsuarioLogadoAsync();
+        if (usuario == null) return "Visitante";
+
+        var cid = await ResolverContaIdAsync(usuario.ContaId);
+        await using var context = await _contextFactory.CreateDbContextAsync();
+        var conta = await context.Contas.FirstOrDefaultAsync(c => c.Id == cid);
+
+        // Se o usuário logado for o Dono da Conta, seu papel é Proprietário
+        if (conta != null && conta.DonoUsuarioId == usuario.Id)
+        {
+            return "Proprietário";
+        }
+
+        // Se estiver registrado na tabela MembrosTime da conta
+        var emailNorm = usuario.Email.Trim().ToLowerInvariant();
+        var membro = await context.MembrosTime.FirstOrDefaultAsync(m => m.ContaId == cid && m.Email == emailNorm && m.Ativo);
+        if (membro != null && !string.IsNullOrWhiteSpace(membro.Papel))
+        {
+            return membro.Papel;
+        }
+
+        // Caso padrão defensivo: se a conta não tiver dono ou for conta inicial criada pelo próprio usuário
+        if (conta == null || conta.DonoUsuarioId == 0 || conta.DonoUsuarioId == usuario.Id)
+        {
+            return "Proprietário";
+        }
+
+        return "Colaborador";
+    }
+
+    public async Task<bool> UsuarioAtualEhColaboradorAsync()
+    {
+        var papel = await ObterPapelUsuarioAtualAsync();
+        return papel.Equals("Colaborador", StringComparison.OrdinalIgnoreCase);
     }
 
     // ==========================================

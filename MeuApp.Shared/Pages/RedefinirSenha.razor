@@ -1,7 +1,6 @@
 @page "/redefinir-senha"
 @layout MeuApp.Shared.Layout.AuthLayout
 @inject IAuthService AuthService
-@inject IEmailService EmailService
 @inject NavigationManager Navigation
 
 <div class="auth-card">
@@ -31,22 +30,6 @@
     }
     else
     {
-        <!-- Painel de Demonstração / Testes Locais -->
-        @if (string.IsNullOrEmpty(Token) && ultimoEmailSimulado != null)
-        {
-            <div class="simulacao-box">
-                <div class="simulacao-header">
-                    <span>💡 Modo Demonstração (Código de Recuperação)</span>
-                </div>
-                <div class="simulacao-codigo-area">
-                    <span class="simulacao-codigo">@ultimoEmailSimulado.CodigoConfirmacao</span>
-                    <button type="button" class="btn-usar-codigo" @onclick="() => codigo = ultimoEmailSimulado.CodigoConfirmacao">
-                        Preencher Código
-                    </button>
-                </div>
-            </div>
-        }
-
         <form @onsubmit="SalvarNovaSenha" class="auth-form">
             @if (string.IsNullOrEmpty(Token))
             {
@@ -134,12 +117,6 @@
     private bool carregando = false;
     private string? mensagemErro;
     private string? mensagemSucesso;
-    private UltimoEmailEnviado? ultimoEmailSimulado;
-
-    protected override void OnInitialized()
-    {
-        ultimoEmailSimulado = EmailService.ObterUltimoEmailSimulado();
-    }
 
     private async Task SalvarNovaSenha()
     {
@@ -153,9 +130,9 @@
             return;
         }
 
-        if (string.IsNullOrWhiteSpace(novaSenha) || novaSenha.Length < 6)
+        if (!AuthService.ValidarRegrasSenha(novaSenha, out var erroSenha))
         {
-            mensagemErro = "A nova senha deve ter no mínimo 6 caracteres.";
+            mensagemErro = erroSenha;
             return;
         }
 

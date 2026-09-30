@@ -35,6 +35,7 @@ public static class MauiProgram
 		builder.Services.AddScoped<IValidadeService, ValidadeService>();
 		builder.Services.AddSingleton<IEmailService, EmailService>();
 		builder.Services.AddSingleton<IAuthService, AuthService>();
+		builder.Services.AddScoped<IThemeService, ThemeService>();
 
 		var app = builder.Build();
 

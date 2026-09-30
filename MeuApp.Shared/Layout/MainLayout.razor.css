@@ -15,7 +15,7 @@
     width: 38px;
     height: 38px;
     border: 3px solid rgba(255, 255, 255, 0.15);
-    border-top-color: #6366f1;
+    border-top-color: #f97316;
     border-radius: 50%;
     animation: authSpin 0.7s linear infinite;
 }
@@ -30,26 +30,34 @@
     min-height: 100vh;
     background-color: #f8fafc;
     color: #0f172a;
+    overflow-x: hidden;
+    width: 100%;
+    transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 .sidebar-wrapper {
-    background-color: #0f172a;
+    background-color: #ffffff;
     width: 100%;
     z-index: 100;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
 }
 
 .main-content-wrapper {
     flex: 1;
     display: flex;
     flex-direction: column;
-    min-width: 0; /* Impede que tabelas ou flex items forcem o esmagamento da sidebar */
+    min-width: 0;
+    max-width: 100%;
     background-color: #f8fafc;
+    overflow-x: hidden;
+    transition: background-color 0.2s ease;
 }
 
 .content-body {
     flex: 1;
     width: 100%;
     min-width: 0;
+    max-width: 100%;
 }
 
 /* Telas Tablet e Desktop (Windows Desktop) */
@@ -68,8 +76,8 @@
         height: 100vh;
         overflow-y: auto;
         overflow-x: hidden;
-        border-right: 1px solid #1e293b;
-        transition: width 0.22s cubic-bezier(0.16, 1, 0.3, 1), min-width 0.22s cubic-bezier(0.16, 1, 0.3, 1), max-width 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+        border-right: 1px solid #e2e8f0;
+        transition: width 0.22s cubic-bezier(0.16, 1, 0.3, 1), min-width 0.22s cubic-bezier(0.16, 1, 0.3, 1), max-width 0.22s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.2s ease, border-color 0.2s ease;
     }
 
     .app-layout.sidebar-collapsed .sidebar-wrapper {
@@ -85,6 +93,23 @@
         overflow-y: auto;
         overflow-x: hidden;
     }
+}
+
+/* ==========================================================================
+   TEMA ESCURO NO LAYOUT GLOBAL
+   ========================================================================== */
+.app-layout.theme-dark {
+    background-color: #090d16;
+    color: #f8fafc;
+}
+
+.app-layout.theme-dark .sidebar-wrapper {
+    background-color: #090d16;
+    border-right-color: #1a2333;
+}
+
+.app-layout.theme-dark .main-content-wrapper {
+    background-color: #090d16;
 }
 
 /* Auto-recolhimento do menu em telas intermediárias para evitar corte de dados na tabela */
@@ -116,6 +141,20 @@
     box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
 }
 
+.app-layout.theme-dark .error-boundary-card {
+    background: #131b2e;
+    border-color: #243048;
+    color: #f8fafc;
+}
+
+.app-layout.theme-dark .error-boundary-card h3 {
+    color: #ffffff;
+}
+
+.app-layout.theme-dark .error-boundary-card p {
+    color: #94a3b8;
+}
+
 .error-boundary-icon {
     font-size: 3rem;
     display: block;
@@ -137,7 +176,7 @@
 }
 
 .btn-recuperar-erro {
-    background: #6366f1;
+    background: #f97316;
     color: #ffffff;
     border: none;
     padding: 10px 20px;
@@ -149,5 +188,5 @@
 }
 
 .btn-recuperar-erro:hover {
-    background: #4f46e5;
+    background: #ea580c;
 }

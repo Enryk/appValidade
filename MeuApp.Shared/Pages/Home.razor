@@ -328,92 +328,129 @@
                     <label class="checkbox-label-mobile">
                         <input type="checkbox" 
                                class="checkbox-custom-item" 
-                               checked="@TodosDaPaginaSelecionados" 
-                               @onchange="ToggleSelecionarTodosDaPagina" />
-                        <span>Selecionar todos da página (@ItensPaginados.Count())</span>
+                               checked="@TodosCardsDaPaginaSelecionados" 
+                               @onchange="ToggleSelecionarTodosCardsDaPagina" />
+                        <span>Selecionar todos da página (@GruposCardsPaginados.Count produtos)</span>
                     </label>
                 </div>
 
                 <div class="cards-responsive-grid">
-                    @foreach (var item in ItensPaginados)
+                    @foreach (var grupo in GruposCardsPaginados)
                     {
-                        <div class="mobile-item-card @(itensSelecionadosIds.Contains(item.Id) ? "card-selected" : "") @(item.EstaVencido ? "card-alerta-vencido" : (item.DiasRestantes <= 7 ? "card-destaque-7dias" : ""))">
+                        var itemAtivo = ObterLoteAtivo(grupo);
+                        <div class="mobile-item-card @(itensSelecionadosIds.Contains(itemAtivo.Id) ? "card-selected" : "") @(itemAtivo.EstaVencido ? "card-alerta-vencido" : (itemAtivo.DiasRestantes <= 7 ? "card-destaque-7dias" : ""))">
                             <div class="card-topo">
                                 <div class="card-topo-left">
                                     <input type="checkbox" 
                                            class="checkbox-custom-item" 
-                                           checked="@itensSelecionadosIds.Contains(item.Id)" 
-                                           @onchange="(e) => ToggleItemSelecionado(item.Id, (bool)(e.Value ?? false))" />
-                                    <span class="loja-chip" title="@(item.Loja?.Nome ?? "Loja")">
-                                        @ObterNomeLojaReduzido(item.Loja?.Nome)
+                                           checked="@itensSelecionadosIds.Contains(itemAtivo.Id)" 
+                                           @onchange="(e) => ToggleItemSelecionado(itemAtivo.Id, (bool)(e.Value ?? false))" />
+                                    <span class="loja-chip" title="@(grupo.Loja?.Nome ?? "Loja")">
+                                        @ObterNomeLojaReduzido(grupo.Loja?.Nome)
                                     </span>
                                 </div>
-                                @if (item.EstaVencido)
-                                {
-                                    <span class="status-chip chip-vencido">🚨 VENCIDO</span>
-                                }
-                                else if (item.DiasRestantes == 0)
-                                {
-                                    <span class="status-chip chip-hoje">⚠️ VENCE HOJE</span>
-                                }
-                                else if (item.DiasRestantes <= 7)
-                                {
-                                    <span class="status-chip chip-atencao">⏳ @item.DiasRestantes dias restantes</span>
-                                }
-                                else
-                                {
-                                    <span class="status-chip chip-ok">@item.DiasRestantes dias</span>
-                                }
+                                <div class="card-topo-badges">
+                                    @if (grupo.Validades.Count > 1)
+                                    {
+                                        <span class="badge-qtd-lotes" title="Este produto possui @grupo.Validades.Count validades cadastradas">
+                                            📦 @grupo.Validades.Count validades
+                                        </span>
+                                    }
+                                    @if (itemAtivo.EstaVencido)
+                                    {
+                                        <span class="status-chip chip-vencido">🚨 VENCIDO</span>
+                                    }
+                                    else if (itemAtivo.DiasRestantes == 0)
+                                    {
+                                        <span class="status-chip chip-hoje">⚠️ VENCE HOJE</span>
+                                    }
+                                    else if (itemAtivo.DiasRestantes <= 7)
+                                    {
+                                        <span class="status-chip chip-atencao">⏳ @itemAtivo.DiasRestantes dias</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="status-chip chip-ok">@itemAtivo.DiasRestantes dias</span>
+                                    }
+                                </div>
                             </div>
 
                             <h3 class="card-prod-nome">
-                                @if (item.EstaVencido)
+                                @if (itemAtivo.EstaVencido)
                                 {
                                     <span style="color: #dc2626;">🚨 </span>
                                 }
-                                else if (item.DiasRestantes <= 7)
+                                else if (itemAtivo.DiasRestantes <= 7)
                                 {
                                     <span style="color: #d97706;">⚠️ </span>
                                 }
-                                @(item.Produto?.Nome ?? "-")
+                                @(grupo.Produto?.Nome ?? "-")
                             </h3>
-                            <span class="card-barcode">Código: @(item.Produto?.CodigoBarras ?? "-")</span>
+                            <span class="card-barcode">Código: @(grupo.Produto?.CodigoBarras ?? "-")</span>
+
+                            @if (grupo.Validades.Count > 1)
+                            {
+                                <div class="seletor-lotes-container">
+                                    <div class="seletor-lotes-header">
+                                        <span class="seletor-lotes-lbl">Validade Selecionada para Ação:</span>
+                                        <span class="seletor-lotes-count">(@grupo.Validades.Count disponíveis)</span>
+                                    </div>
+                                    <div class="chips-lotes-grid">
+                                        @foreach (var val in grupo.Validades)
+                                        {
+                                            var isSel = (val.Id == itemAtivo.Id);
+                                            <button type="button" 
+                                                    class="btn-chip-lote @(isSel ? "lote-ativo" : "") @(val.EstaVencido ? "lote-vencido" : (val.DiasRestantes <= 7 ? "lote-urgente" : ""))"
+                                                    @onclick="() => SelecionarLote(grupo.Chave, val.Id)"
+                                                    title="Clique para selecionar e agir sobre a validade @val.DataValidade.ToString("dd/MM/yyyy")">
+                                                <span class="chip-lote-radio">@(isSel ? "●" : "○")</span>
+                                                <strong class="chip-lote-data">@val.DataValidade.ToString("dd/MM/yyyy")</strong>
+                                                <span class="chip-lote-prazo">(@val.MensagemPrazo)</span>
+                                                @if (val.EmPromocao)
+                                                {
+                                                    <span class="chip-lote-promo-badge">Promo</span>
+                                                }
+                                            </button>
+                                        }
+                                    </div>
+                                </div>
+                            }
 
                             <div class="card-datas-grid">
                                 <div class="data-bloco">
-                                    <span class="data-label">Validade</span>
-                                    <span class="data-val @(item.EstaVencido ? "data-vencida" : (item.DiasRestantes <= 7 ? "data-destaque-7dias" : ""))">
-                                        @item.DataValidade.ToString("dd/MM/yyyy")
+                                    <span class="data-label">@(grupo.Validades.Count > 1 ? "Validade em Foco" : "Validade")</span>
+                                    <span class="data-val @(itemAtivo.EstaVencido ? "data-vencida" : (itemAtivo.DiasRestantes <= 7 ? "data-destaque-7dias" : ""))">
+                                        @itemAtivo.DataValidade.ToString("dd/MM/yyyy")
                                     </span>
                                 </div>
                                 <div class="data-bloco">
-                                    <span class="data-label">Coleta</span>
-                                    <span class="data-val">@item.DataColeta.ToString("dd/MM/yyyy")</span>
+                                    <span class="data-label">Data Coleta</span>
+                                    <span class="data-val">@itemAtivo.DataColeta.ToString("dd/MM/yyyy")</span>
                                 </div>
                             </div>
 
-                            <div class="card-prazo-aviso @(item.EstaVencido ? "prazo-vencido-destaque" : (item.DiasRestantes <= 7 ? "prazo-7dias-destaque" : ""))">
-                                @item.MensagemPrazo
+                            <div class="card-prazo-aviso @(itemAtivo.EstaVencido ? "prazo-vencido-destaque" : (itemAtivo.DiasRestantes <= 7 ? "prazo-7dias-destaque" : ""))">
+                                @itemAtivo.MensagemPrazo
                             </div>
 
                             <div class="card-rodape">
                                 <div class="card-promocao-row">
-                                    <label class="switch-promocao" title="Alternar status de promoção">
+                                    <label class="switch-promocao" title="Alternar status de promoção da validade selecionada">
                                         <input type="checkbox" 
-                                               checked="@item.EmPromocao" 
-                                               @onchange="(e) => TogglePromocao(item, (bool)(e.Value ?? false))" />
+                                               checked="@itemAtivo.EmPromocao" 
+                                               @onchange="(e) => TogglePromocao(itemAtivo, (bool)(e.Value ?? false))" />
                                         <span class="switch-slider"></span>
-                                        <span class="switch-label @(item.EmPromocao ? "promo-ativa-txt" : "promo-inativa-txt")">
-                                            @(item.EmPromocao ? "Item em Promoção (Sim)" : "Item em Promoção (Não)")
+                                        <span class="switch-label @(itemAtivo.EmPromocao ? "promo-ativa-txt" : "promo-inativa-txt")">
+                                            @(itemAtivo.EmPromocao ? "Item em Promoção (Sim)" : "Item em Promoção (Não)")
                                         </span>
                                     </label>
                                 </div>
 
                                 <div class="card-acoes-grid">
-                                    <button type="button" class="btn-whatsapp-card btn-mobile-acao" @onclick="() => CompartilharItemIndividual(item)" title="Enviar via WhatsApp">
+                                    <button type="button" class="btn-whatsapp-card btn-mobile-acao" @onclick="() => CompartilharItemIndividual(itemAtivo)" title="Enviar validade selecionada via WhatsApp">
                                         💬 WhatsApp
                                     </button>
-                                    <button type="button" class="btn-dar-baixa btn-mobile-acao" @onclick="() => AbrirModalBaixa(item)">
+                                    <button type="button" class="btn-dar-baixa btn-mobile-acao" @onclick="() => AbrirModalBaixa(itemAtivo)" title="Dar baixa na validade @itemAtivo.DataValidade.ToString("dd/MM/yyyy")">
                                         ✏️ Dar Baixa
                                     </button>
                                 </div>
@@ -428,7 +465,7 @@
             {
                 <div class="paginacao-rodape">
                     <div class="paginacao-info">
-                        Exibindo <strong>@PrimeiroItemExibido</strong> a <strong>@UltimoItemExibido</strong> de <strong>@TotalItensFiltrados</strong> lotes
+                        Exibindo <strong>@PrimeiroItemExibido</strong> a <strong>@UltimoItemExibido</strong> de <strong>@TotalContagemModoAtual</strong> @(modoVisualizacao == "cards" ? "produtos" : "lotes")
                     </div>
 
                     <div class="paginacao-botoes">
@@ -530,9 +567,40 @@
     // Modo de Visualização (Tabela vs Cartões)
     private string modoVisualizacao = "tabela";
 
+    // Modelo para agrupamento de validades do mesmo produto na mesma loja (Cards)
+    public class GrupoProdutoValidade
+    {
+        public string Chave => $"{LojaId}_{ProdutoId}";
+        public int LojaId { get; set; }
+        public int ProdutoId { get; set; }
+        public Produto? Produto { get; set; }
+        public Loja? Loja { get; set; }
+        public List<RegistroValidade> Validades { get; set; } = new();
+        public RegistroValidade ValidadeMaisUrgente =>
+            Validades.OrderBy(v => v.DataValidade).FirstOrDefault() ?? Validades.First();
+    }
+
+    private Dictionary<string, int> loteSelecionadoPorGrupo = new();
+
+    private RegistroValidade ObterLoteAtivo(GrupoProdutoValidade grupo)
+    {
+        if (loteSelecionadoPorGrupo.TryGetValue(grupo.Chave, out var idAtivo))
+        {
+            var encontrado = grupo.Validades.FirstOrDefault(v => v.Id == idAtivo);
+            if (encontrado != null) return encontrado;
+        }
+        return grupo.ValidadeMaisUrgente;
+    }
+
+    private void SelecionarLote(string chaveGrupo, int validadeId)
+    {
+        loteSelecionadoPorGrupo[chaveGrupo] = validadeId;
+    }
+
     private void SetModoVisualizacao(string modo)
     {
         modoVisualizacao = modo;
+        paginaAtual = 1;
     }
 
     private string ObterNomeLojaReduzido(string? nome)
@@ -571,9 +639,63 @@
     }
 
     private int TotalItensFiltrados => ItensFiltrados.Count();
-    private int TotalPaginas => Math.Max(1, (int)Math.Ceiling((double)TotalItensFiltrados / itensPorPagina));
-    private int PrimeiroItemExibido => TotalItensFiltrados == 0 ? 0 : ((paginaAtual - 1) * itensPorPagina) + 1;
-    private int UltimoItemExibido => Math.Min(paginaAtual * itensPorPagina, TotalItensFiltrados);
+
+    private IEnumerable<GrupoProdutoValidade> GruposCardsFiltrados
+    {
+        get
+        {
+            return ItensFiltrados
+                .GroupBy(v => new { v.ProdutoId, v.LojaId })
+                .Select(g => new GrupoProdutoValidade
+                {
+                    LojaId = g.Key.LojaId,
+                    ProdutoId = g.Key.ProdutoId,
+                    Produto = g.First().Produto,
+                    Loja = g.First().Loja,
+                    Validades = g.OrderBy(v => v.DataValidade).ToList()
+                })
+                .OrderBy(g => g.ValidadeMaisUrgente.DataValidade);
+        }
+    }
+
+    private int TotalGruposFiltrados => GruposCardsFiltrados.Count();
+
+    private List<GrupoProdutoValidade> GruposCardsPaginados =>
+        GruposCardsFiltrados
+            .Skip((paginaAtual - 1) * itensPorPagina)
+            .Take(itensPorPagina)
+            .ToList();
+
+    private bool TodosCardsDaPaginaSelecionados
+    {
+        get
+        {
+            var ativos = GruposCardsPaginados.Select(g => ObterLoteAtivo(g)).ToList();
+            return ativos.Any() && ativos.All(i => itensSelecionadosIds.Contains(i.Id));
+        }
+    }
+
+    private void ToggleSelecionarTodosCardsDaPagina(ChangeEventArgs e)
+    {
+        bool selecionar = (bool)(e.Value ?? false);
+        var idsAtivos = GruposCardsPaginados.Select(g => ObterLoteAtivo(g).Id).ToList();
+
+        if (selecionar)
+        {
+            foreach (var id in idsAtivos)
+                itensSelecionadosIds.Add(id);
+        }
+        else
+        {
+            foreach (var id in idsAtivos)
+                itensSelecionadosIds.Remove(id);
+        }
+    }
+
+    private int TotalContagemModoAtual => modoVisualizacao == "cards" ? TotalGruposFiltrados : TotalItensFiltrados;
+    private int TotalPaginas => Math.Max(1, (int)Math.Ceiling((double)TotalContagemModoAtual / itensPorPagina));
+    private int PrimeiroItemExibido => TotalContagemModoAtual == 0 ? 0 : ((paginaAtual - 1) * itensPorPagina) + 1;
+    private int UltimoItemExibido => Math.Min(paginaAtual * itensPorPagina, TotalContagemModoAtual);
 
     private List<RegistroValidade> ItensPaginados =>
         ItensFiltrados
@@ -656,6 +778,7 @@
         carregando = true;
         paginaAtual = 1;
         itensSelecionadosIds.Clear();
+        loteSelecionadoPorGrupo.Clear();
         int? lojaId = lojaFiltroId > 0 ? lojaFiltroId : null;
 
         validades = await ValidadeService.GetValidadesAtivasAsync(

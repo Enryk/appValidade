@@ -12,6 +12,29 @@
     <link rel="stylesheet" href="app.css" />
     <link rel="stylesheet" href="MeuApp.App.styles.css" />
     <link rel="icon" href="data:,">
+    <script>
+        (function() {
+            try {
+                var t = localStorage.getItem('validata_theme') || 'light';
+                document.documentElement.setAttribute('data-theme', t);
+            } catch(e) {}
+        })();
+        window.validataTheme = {
+            setTheme: function(theme) {
+                try {
+                    document.documentElement.setAttribute('data-theme', theme);
+                    localStorage.setItem('validata_theme', theme);
+                } catch(e) {}
+            },
+            getTheme: function() {
+                try {
+                    return localStorage.getItem('validata_theme') || 'light';
+                } catch(e) {
+                    return 'light';
+                }
+            }
+        };
+    </script>
 </head>
 
 <body>

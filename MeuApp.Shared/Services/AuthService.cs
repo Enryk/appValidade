@@ -155,6 +155,217 @@ public class AuthService : IAuthService
         }
     }
 
+    public bool ValidarRegrasSenha(string senha, out string? mensagemErro)
+    {
+        if (string.IsNullOrWhiteSpace(senha))
+        {
+            mensagemErro = "A senha não pode estar em branco.";
+            return false;
+        }
+        if (senha.Length < 6)
+        {
+            mensagemErro = "A senha deve conter no mínimo 6 caracteres.";
+            return false;
+        }
+        if (!senha.Any(char.IsUpper))
+        {
+            mensagemErro = "A senha deve conter pelo menos 1 letra maiúscula (A-Z).";
+            return false;
+        }
+        if (!senha.Any(char.IsLower))
+        {
+            mensagemErro = "A senha deve conter pelo menos 1 letra minúscula (a-z).";
+            return false;
+        }
+        if (!senha.Any(ch => !char.IsLetterOrDigit(ch)))
+        {
+            mensagemErro = "A senha deve conter pelo menos 1 caractere especial (ex: @, #, $, %, !, *).";
+            return false;
+        }
+        mensagemErro = null;
+        return true;
+    }
+
+    public async Task<ResultadoAuth> IniciarCadastroAsync(string nome, string email, string baseUrl = "")
+    {
+        if (string.IsNullOrWhiteSpace(nome))
+            return ResultadoAuth.Falha("Informe seu nome completo.");
+
+        if (string.IsNullOrWhiteSpace(email) || !email.Contains('@'))
+            return ResultadoAuth.Falha("Informe um endereço de e-mail válido.");
+
+        email = email.Trim().ToLowerInvariant();
+        nome = nome.Trim();
+
+        try
+        {
+            await using var db = await _dbFactory.CreateDbContextAsync();
+
+            var existente = await db.Usuarios.FirstOrDefaultAsync(u => u.Email == email);
+            if (existente != null)
+            {
+                if (existente.EmailConfirmado)
+                {
+                    return ResultadoAuth.Falha("Já existe uma conta ativa com este e-mail. Faça login para continuar.");
+                }
+                else
+                {
+                    existente.Nome = nome;
+                    existente.TokenConfirmacao = Guid.NewGuid().ToString("N");
+                    existente.CodigoConfirmacao = Random.Shared.Next(100000, 999999).ToString();
+                    existente.TokenExpiracao = DateTime.Now.AddHours(48);
+
+                    if (existente.ContaId <= 0)
+                    {
+                        await GarantirContaDoUsuarioAsync(db, existente);
+                    }
+
+                    await db.SaveChangesAsync();
+
+                    var linkAtivacao = $"{baseUrl.TrimEnd('/')}/definir-senha?token={existente.TokenConfirmacao}";
+                    await _emailService.EnviarEmailAtivacaoAsync(nome, email, linkAtivacao, existente.CodigoConfirmacao);
+
+                    var resReenvio = ResultadoAuth.Ok(existente, "Enviamos um novo link de ativação para o seu e-mail.");
+                    resReenvio.RequerConfirmacaoEmail = true;
+                    return resReenvio;
+                }
+            }
+
+            var token = Guid.NewGuid().ToString("N");
+            var codigo = Random.Shared.Next(100000, 999999).ToString();
+
+            var convite = await db.MembrosTime.FirstOrDefaultAsync(m => m.Email == email && m.Ativo);
+            int contaId = 0;
+            Conta? novaContaCriada = null;
+
+            if (convite != null && convite.ContaId > 0)
+            {
+                contaId = convite.ContaId;
+            }
+            else
+            {
+                novaContaCriada = new Conta
+                {
+                    Nome = $"Conta de {nome}",
+                    DonoUsuarioId = 0,
+                    DataCriacao = DateTime.Now
+                };
+                db.Contas.Add(novaContaCriada);
+                await db.SaveChangesAsync();
+                contaId = novaContaCriada.Id;
+            }
+
+            var novoUsuario = new Usuario
+            {
+                Nome = nome,
+                Email = email,
+                ContaId = contaId,
+                SenhaHash = "",
+                SenhaSalt = "",
+                EmailConfirmado = false,
+                DeveAlterarSenha = true,
+                TokenConfirmacao = token,
+                CodigoConfirmacao = codigo,
+                TokenExpiracao = DateTime.Now.AddHours(48),
+                DataCriacao = DateTime.Now,
+                Ativo = true
+            };
+
+            db.Usuarios.Add(novoUsuario);
+            await db.SaveChangesAsync();
+
+            if (novaContaCriada != null)
+            {
+                novaContaCriada.DonoUsuarioId = novoUsuario.Id;
+                await db.SaveChangesAsync();
+            }
+
+            var link = $"{baseUrl.TrimEnd('/')}/definir-senha?token={token}";
+            await _emailService.EnviarEmailAtivacaoAsync(nome, email, link, codigo);
+
+            var resultado = ResultadoAuth.Ok(novoUsuario, "E-mail de validação enviado com sucesso! Acesse sua caixa de entrada para criar sua senha.");
+            resultado.RequerConfirmacaoEmail = true;
+            return resultado;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Erro ao iniciar cadastro do usuário.");
+            return ResultadoAuth.Falha("Erro ao cadastrar usuário. Tente novamente.");
+        }
+    }
+
+    public async Task<ResultadoAuth> ValidarTokenAtivacaoAsync(string token)
+    {
+        if (string.IsNullOrWhiteSpace(token))
+            return ResultadoAuth.Falha("Token de validação não informado.");
+
+        token = token.Trim();
+
+        try
+        {
+            await using var db = await _dbFactory.CreateDbContextAsync();
+            var usuario = await db.Usuarios.FirstOrDefaultAsync(u => u.TokenConfirmacao == token && u.Ativo);
+            if (usuario == null)
+                return ResultadoAuth.Falha("Link de validação inválido ou já utilizado.");
+
+            if (usuario.TokenExpiracao.HasValue && usuario.TokenExpiracao.Value < DateTime.Now)
+                return ResultadoAuth.Falha("Este link de validação já expirou. Solicite um novo cadastro.");
+
+            return ResultadoAuth.Ok(usuario, "Link válido.");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Erro ao validar token de ativação.");
+            return ResultadoAuth.Falha("Erro ao verificar o link de validação.");
+        }
+    }
+
+    public async Task<ResultadoAuth> AtivarContaEDefinirSenhaAsync(string token, string novaSenha)
+    {
+        if (string.IsNullOrWhiteSpace(token))
+            return ResultadoAuth.Falha("Token de validação inválido.");
+
+        if (!ValidarRegrasSenha(novaSenha, out var erroSenha))
+            return ResultadoAuth.Falha(erroSenha!);
+
+        token = token.Trim();
+
+        try
+        {
+            await using var db = await _dbFactory.CreateDbContextAsync();
+            var usuario = await db.Usuarios.FirstOrDefaultAsync(u => u.TokenConfirmacao == token && u.Ativo);
+            if (usuario == null)
+                return ResultadoAuth.Falha("Link de ativação inválido ou já utilizado.");
+
+            if (usuario.TokenExpiracao.HasValue && usuario.TokenExpiracao.Value < DateTime.Now)
+                return ResultadoAuth.Falha("Este link de ativação expirou. Solicite um novo link de cadastro.");
+
+            CriarHashSenha(novaSenha, out var hash, out var salt);
+            usuario.SenhaHash = hash;
+            usuario.SenhaSalt = salt;
+            usuario.EmailConfirmado = true;
+            usuario.DeveAlterarSenha = false;
+            usuario.TokenConfirmacao = null;
+            usuario.CodigoConfirmacao = null;
+            usuario.TokenExpiracao = null;
+            usuario.UltimoAcesso = DateTime.Now;
+
+            await GarantirContaDoUsuarioAsync(db, usuario);
+            await db.SaveChangesAsync();
+
+            _usuarioLogado = usuario;
+            await SalvarSessaoAsync(usuario.Id);
+            OnAuthStateChanged?.Invoke();
+
+            return ResultadoAuth.Ok(usuario, "Sua conta foi ativada e sua senha foi definida com sucesso!");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Erro ao ativar conta e definir senha.");
+            return ResultadoAuth.Falha("Erro ao cadastrar senha. Tente novamente.");
+        }
+    }
+
     public async Task<ResultadoAuth> CadastrarAsync(string nome, string email, string senha, string baseUrl = "")
     {
         if (string.IsNullOrWhiteSpace(nome))
@@ -203,8 +414,6 @@ public class AuthService : IAuthService
 
                     var resReenvio = ResultadoAuth.Ok(existente, "Cadastro atualizado! Enviamos um novo link de confirmação para o seu e-mail.");
                     resReenvio.RequerConfirmacaoEmail = true;
-                    resReenvio.CodigoGeradoSimulacao = existente.CodigoConfirmacao;
-                    resReenvio.LinkGeradoSimulacao = linkExistente;
                     return resReenvio;
                 }
             }
@@ -266,8 +475,6 @@ public class AuthService : IAuthService
 
             var resultado = ResultadoAuth.Ok(novoUsuario, "Cadastro realizado com sucesso! Verifique seu e-mail para validar a conta.");
             resultado.RequerConfirmacaoEmail = true;
-            resultado.CodigoGeradoSimulacao = codigo;
-            resultado.LinkGeradoSimulacao = link;
             return resultado;
         }
         catch (Exception ex)
@@ -352,8 +559,6 @@ public class AuthService : IAuthService
             await _emailService.EnviarEmailConfirmacaoAsync(usuario.Nome, usuario.Email, link, usuario.CodigoConfirmacao);
 
             var res = ResultadoAuth.Ok(usuario, "Novo código de validação enviado para o seu e-mail!");
-            res.CodigoGeradoSimulacao = usuario.CodigoConfirmacao;
-            res.LinkGeradoSimulacao = link;
             return res;
         }
         catch (Exception ex)
@@ -386,8 +591,8 @@ public class AuthService : IAuthService
                 if (!VerificarHashSenha(senhaAtual, usuario.SenhaHash, usuario.SenhaSalt))
                     return ResultadoAuth.Falha("A senha atual informada está incorreta.");
 
-                if (novaSenha.Length < 6)
-                    return ResultadoAuth.Falha("A nova senha deve ter no mínimo 6 caracteres.");
+                if (!ValidarRegrasSenha(novaSenha, out var erroRegra))
+                    return ResultadoAuth.Falha(erroRegra!);
 
                 CriarHashSenha(novaSenha, out var novoHash, out var novoSalt);
                 usuario.SenhaHash = novoHash;
@@ -457,8 +662,6 @@ public class AuthService : IAuthService
             await _emailService.EnviarEmailRecuperacaoSenhaAsync(usuario.Nome, usuario.Email, link, codigo);
 
             var res = ResultadoAuth.Ok(usuario, "Código de redefinição enviado com sucesso para o seu e-mail!");
-            res.CodigoGeradoSimulacao = codigo;
-            res.LinkGeradoSimulacao = link;
             return res;
         }
         catch (Exception ex)
@@ -473,8 +676,8 @@ public class AuthService : IAuthService
         if (string.IsNullOrWhiteSpace(tokenOuCodigo))
             return ResultadoAuth.Falha("Código ou link de redefinição não informado.");
 
-        if (string.IsNullOrWhiteSpace(novaSenha) || novaSenha.Length < 6)
-            return ResultadoAuth.Falha("A nova senha deve ter no mínimo 6 caracteres.");
+        if (!ValidarRegrasSenha(novaSenha, out var erroSenha))
+            return ResultadoAuth.Falha(erroSenha!);
 
         tokenOuCodigo = tokenOuCodigo.Trim();
 
@@ -515,8 +718,8 @@ public class AuthService : IAuthService
 
     public async Task<ResultadoAuth> DefinirNovaSenhaPrimeiroAcessoAsync(int usuarioId, string novaSenha)
     {
-        if (string.IsNullOrWhiteSpace(novaSenha) || novaSenha.Length < 6)
-            return ResultadoAuth.Falha("A nova senha deve ter no mínimo 6 caracteres.");
+        if (!ValidarRegrasSenha(novaSenha, out var erroSenha))
+            return ResultadoAuth.Falha(erroSenha!);
 
         try
         {

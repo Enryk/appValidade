@@ -19,95 +19,88 @@
         </div>
     }
 
-    <form @onsubmit="EfetuarCadastro" class="auth-form">
-        <div class="form-group">
-            <label class="form-label" for="cad-nome">Nome Completo</label>
-            <div class="input-wrapper">
-                <span class="input-icon">👤</span>
-                <input id="cad-nome" 
-                       type="text" 
-                       class="form-control" 
-                       placeholder="Ex: Carlos Silva" 
-                       @bind="nome" 
-                       required 
-                       autofocus />
-            </div>
+    @if (cadastroIniciado)
+    {
+        <div class="auth-alert alert-success">
+            <span>🎉 E-mail de validação enviado com sucesso!</span>
+            <p style="margin: 10px 0 0 0; font-size: 0.9rem; line-height: 1.5; color: #166534; font-weight: normal;">
+                Enviamos um link seguro para <strong>@email</strong>.<br />
+                Acesse sua caixa de entrada e clique no link para <strong>definir a sua senha</strong> e ativar a sua conta.
+            </p>
         </div>
 
-        <div class="form-group">
-            <label class="form-label" for="cad-email">E-mail para Validação</label>
-            <div class="input-wrapper">
-                <span class="input-icon">✉️</span>
-                <input id="cad-email" 
-                       type="email" 
-                       class="form-control" 
-                       placeholder="seu.email@exemplo.com" 
-                       @bind="email" 
-                       required />
-            </div>
-            <span class="field-hint">Enviaremos um link e código de validação para este e-mail.</span>
+        <div class="auth-footer">
+            <p class="footer-text">
+                Deseja voltar à tela inicial? 
+                <a href="/login" class="footer-link">Ir para o Login</a>
+            </p>
         </div>
-
-        <div class="form-group">
-            <label class="form-label" for="cad-senha">Criar Senha</label>
-            <div class="input-wrapper">
-                <span class="input-icon">🔒</span>
-                <input id="cad-senha" 
-                       type="@(mostrarSenha ? "text" : "password")" 
-                       class="form-control" 
-                       placeholder="Mínimo 6 caracteres" 
-                       @bind="senha" 
-                       required />
-                <button type="button" 
-                        class="btn-toggle-senha" 
-                        @onclick="() => mostrarSenha = !mostrarSenha"
-                        title="@(mostrarSenha ? "Ocultar senha" : "Ver senha")">
-                    @(mostrarSenha ? "👁️" : "👁️‍🗨️")
-                </button>
+    }
+    else
+    {
+        <form @onsubmit="EfetuarCadastro" class="auth-form">
+            <div class="form-group">
+                <label class="form-label" for="cad-nome">Nome Completo</label>
+                <div class="input-wrapper">
+                    <span class="input-icon">👤</span>
+                    <input id="cad-nome" 
+                           type="text" 
+                           class="form-control" 
+                           placeholder="Ex: Carlos Silva" 
+                           @bind="nome" 
+                           required 
+                           autofocus />
+                </div>
             </div>
-        </div>
 
-        <div class="form-group">
-            <label class="form-label" for="cad-confirma">Confirmar Senha</label>
-            <div class="input-wrapper">
-                <span class="input-icon">🔑</span>
-                <input id="cad-confirma" 
-                       type="@(mostrarSenha ? "text" : "password")" 
-                       class="form-control" 
-                       placeholder="Repita a senha" 
-                       @bind="confirmacaoSenha" 
-                       required />
+            <div class="form-group">
+                <label class="form-label" for="cad-email">E-mail para Validação</label>
+                <div class="input-wrapper">
+                    <span class="input-icon">✉️</span>
+                    <input id="cad-email" 
+                           type="email" 
+                           class="form-control" 
+                           placeholder="seu.email@exemplo.com" 
+                           @bind="email" 
+                           required />
+                </div>
+                <span class="field-hint">Enviaremos um link seguro para você definir sua senha e ativar o acesso.</span>
             </div>
+
+            <div class="info-validacao-box">
+                <span class="info-validacao-icon">ℹ️</span>
+                <span class="info-validacao-text">
+                    Ao confirmar, você receberá um e-mail com o link para escolher sua senha pessoal (mínimo de 6 caracteres, com letra maiúscula, minúscula e caractere especial).
+                </span>
+            </div>
+
+            <button type="submit" class="btn-auth-primary" disabled="@carregando">
+                @if (carregando)
+                {
+                    <span class="spinner-sm"></span>
+                    <span>Enviando e-mail de ativação...</span>
+                }
+                else
+                {
+                    <span>Cadastrar & Receber E-mail</span>
+                }
+            </button>
+        </form>
+
+        <div class="auth-footer">
+            <p class="footer-text">
+                Já possui uma conta? 
+                <a href="/login" class="footer-link">Entrar no sistema</a>
+            </p>
         </div>
-
-        <button type="submit" class="btn-auth-primary" disabled="@carregando">
-            @if (carregando)
-            {
-                <span class="spinner-sm"></span>
-                <span>Enviando validação...</span>
-            }
-            else
-            {
-                <span>Cadastrar e Receber E-mail</span>
-            }
-        </button>
-    </form>
-
-    <div class="auth-footer">
-        <p class="footer-text">
-            Já possui uma conta? 
-            <a href="/login" class="footer-link">Entrar no sistema</a>
-        </p>
-    </div>
+    }
 </div>
 
 @code {
     private string nome = "";
     private string email = "";
-    private string senha = "";
-    private string confirmacaoSenha = "";
-    private bool mostrarSenha = false;
     private bool carregando = false;
+    private bool cadastroIniciado = false;
     private string? mensagemErro;
 
     private async Task EfetuarCadastro()
@@ -126,26 +119,13 @@
             return;
         }
 
-        if (senha != confirmacaoSenha)
-        {
-            mensagemErro = "As senhas não coincidem. Verifique e tente novamente.";
-            return;
-        }
-
-        if (senha.Length < 6)
-        {
-            mensagemErro = "A senha deve conter no mínimo 6 caracteres.";
-            return;
-        }
-
         carregando = true;
         try
         {
-            var res = await AuthService.CadastrarAsync(nome, email, senha, Navigation.BaseUri);
+            var res = await AuthService.IniciarCadastroAsync(nome, email, Navigation.BaseUri);
             if (res.Sucesso)
             {
-                // Redireciona para a tela de confirmação de e-mail passando o e-mail
-                Navigation.NavigateTo($"/confirmar-email?email={Uri.EscapeDataString(email)}");
+                cadastroIniciado = true;
             }
             else
             {

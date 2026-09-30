@@ -54,7 +54,7 @@
     width: 72px;
     height: 72px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+    background: linear-gradient(135deg, #ff7a18 0%, #ea580c 100%);
     color: #ffffff;
     font-size: 1.6rem;
     font-weight: 800;
@@ -62,7 +62,7 @@
     align-items: center;
     justify-content: center;
     margin-bottom: 14px;
-    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.25);
+    box-shadow: 0 4px 12px rgba(234, 88, 12, 0.25);
 }
 
 .resumo-nome {
@@ -158,10 +158,11 @@
 }
 
 .form-label {
-    font-size: 0.8rem;
+    font-size: 0.74rem;
     font-weight: 700;
     color: #475569;
     text-transform: uppercase;
+    letter-spacing: 0.25px;
 }
 
 .form-control {
@@ -176,7 +177,8 @@
 }
 
 .form-control:focus {
-    border-color: #6366f1;
+    border-color: #f97316;
+    box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.15);
 }
 
 .form-control:disabled {
@@ -196,7 +198,7 @@
     border-top: 1px dashed #cbd5e1;
     font-size: 0.82rem;
     font-weight: 700;
-    color: #6366f1;
+    color: #ea580c;
     text-transform: uppercase;
 }
 
@@ -227,7 +229,7 @@
 }
 
 .btn-salvar {
-    background: #4f46e5;
+    background: linear-gradient(135deg, #ff7a18 0%, #ea580c 100%);
     color: #ffffff;
     border: none;
     padding: 10px 20px;
@@ -235,14 +237,119 @@
     font-size: 0.9rem;
     font-weight: 700;
     cursor: pointer;
-    transition: background 0.15s ease;
+    box-shadow: 0 2px 8px rgba(234, 88, 12, 0.25);
+    transition: all 0.15s ease;
 }
 
 .btn-salvar:hover:not(:disabled) {
-    background: #4338ca;
+    background: #c2410c;
+    transform: translateY(-1px);
 }
 
 .btn-salvar:disabled {
     opacity: 0.7;
     cursor: not-allowed;
+}
+
+/* ========================================================
+   RESPONSIVIDADE COMPLETA: TELAS PEQUENAS E MOBILE (< 680px)
+   ======================================================== */
+@media (max-width: 680px) {
+    .perfil-page-container {
+        padding: 12px 12px 32px 12px;
+    }
+
+    .perfil-title {
+        font-size: 1.35rem;
+    }
+
+    .perfil-card {
+        padding: 16px 14px;
+        border-radius: 14px;
+    }
+
+    .form-actions {
+        width: 100%;
+    }
+
+    .btn-salvar {
+        width: 100%;
+        justify-content: center;
+        text-align: center;
+    }
+}
+
+/* ========================================================
+   TEMA ESCURO - PERFIL
+   ======================================================== */
+:root[data-theme="dark"] .perfil-page-container {
+    color: #f8fafc;
+}
+
+:root[data-theme="dark"] .perfil-title {
+    color: #ffffff;
+}
+
+:root[data-theme="dark"] .perfil-subtitle {
+    color: #cbd5e1;
+}
+
+:root[data-theme="dark"] .perfil-card {
+    background: #131b2e !important;
+    border-color: #243048 !important;
+    color: #f8fafc !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+
+:root[data-theme="dark"] .perfil-card-title,
+:root[data-theme="dark"] .resumo-nome {
+    color: #ffffff !important;
+}
+
+:root[data-theme="dark"] .perfil-card-subtitle,
+:root[data-theme="dark"] .resumo-email,
+:root[data-theme="dark"] .info-label,
+:root[data-theme="dark"] .field-hint {
+    color: #cbd5e1 !important;
+}
+
+:root[data-theme="dark"] .form-label {
+    color: #e2e8f0 !important;
+    font-weight: 700;
+}
+
+:root[data-theme="dark"] .info-val {
+    color: #ffffff !important;
+}
+
+:root[data-theme="dark"] .info-lista {
+    border-top-color: #243048 !important;
+}
+
+:root[data-theme="dark"] .form-control {
+    background: #0f172a !important;
+    border: 1.5px solid #334155 !important;
+    color: #ffffff !important;
+}
+
+:root[data-theme="dark"] .form-control::placeholder {
+    color: #94a3b8 !important;
+    opacity: 1 !important;
+}
+
+:root[data-theme="dark"] .form-control:focus {
+    border-color: #f97316 !important;
+    box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.25) !important;
+    background: #131b2e !important;
+}
+
+:root[data-theme="dark"] .form-control:disabled {
+    background: #1a2234 !important;
+    border-color: #243048 !important;
+    color: #94a3b8 !important;
+}
+
+:root[data-theme="dark"] .separador-secao {
+    border-top-color: #243048 !important;
+    color: #fb923c !important;
 }

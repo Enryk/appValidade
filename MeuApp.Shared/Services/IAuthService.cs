@@ -11,8 +11,6 @@ public class ResultadoAuth
     public Usuario? Usuario { get; set; }
     public bool RequerConfirmacaoEmail { get; set; }
     public bool DeveAlterarSenha { get; set; }
-    public string? CodigoGeradoSimulacao { get; set; }
-    public string? LinkGeradoSimulacao { get; set; }
 
     public static ResultadoAuth Ok(Usuario usuario, string mensagem = "Operação realizada com sucesso!") =>
         new() { Sucesso = true, Mensagem = mensagem, Usuario = usuario, DeveAlterarSenha = usuario.DeveAlterarSenha };
@@ -24,6 +22,9 @@ public class ResultadoAuth
 public interface IAuthService
 {
     Task<ResultadoAuth> LoginAsync(string email, string senha);
+    Task<ResultadoAuth> IniciarCadastroAsync(string nome, string email, string baseUrl = "");
+    Task<ResultadoAuth> ValidarTokenAtivacaoAsync(string token);
+    Task<ResultadoAuth> AtivarContaEDefinirSenhaAsync(string token, string novaSenha);
     Task<ResultadoAuth> CadastrarAsync(string nome, string email, string senha, string baseUrl = "");
     Task<ResultadoAuth> ConfirmarEmailAsync(string tokenOuCodigo);
     Task<ResultadoAuth> ReenviarConfirmacaoAsync(string email, string baseUrl = "");
@@ -33,6 +34,7 @@ public interface IAuthService
     Task<ResultadoAuth> SolicitarRecuperacaoSenhaAsync(string email, string baseUrl = "");
     Task<ResultadoAuth> RedefinirSenhaAsync(string tokenOuCodigo, string novaSenha);
     Task<ResultadoAuth> DefinirNovaSenhaPrimeiroAcessoAsync(int usuarioId, string novaSenha);
+    bool ValidarRegrasSenha(string senha, out string? mensagemErro);
     
     event Action? OnAuthStateChanged;
 }

@@ -66,7 +66,7 @@
 
 .filtros-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr));
     gap: 14px;
 }
 
@@ -164,10 +164,13 @@
 
 .tabela-responsive {
     overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    width: 100%;
 }
 
 .tabela-auditoria {
     width: 100%;
+    min-width: 640px;
     border-collapse: collapse;
 }
 
@@ -241,8 +244,9 @@
 }
 
 .motivo-ajuste {
-    background: #e0e7ff;
-    color: #3730a3;
+    background: #fff7ed;
+    color: #c2410c;
+    border: 1px solid #fed7aa;
 }
 
 .motivo-outro {
@@ -284,4 +288,188 @@
     background: #3b82f6;
     border-color: #3b82f6;
     color: #ffffff;
+}
+
+/* ========================================================
+   RESPONSIVIDADE COMPLETA: TELAS PEQUENAS E MOBILE (< 680px)
+   ======================================================== */
+@media (max-width: 680px) {
+    .historico-page {
+        padding: 12px 12px 32px 12px;
+    }
+
+    .page-title {
+        font-size: 1.35rem;
+    }
+
+    .page-header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+    }
+
+    .btn-exportar-csv {
+        width: 100%;
+        justify-content: center;
+        text-align: center;
+    }
+
+    .filtros-card, .tabela-card {
+        padding: 16px 14px;
+        border-radius: 14px;
+        margin-bottom: 16px;
+    }
+
+    .filtros-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .filtros-actions {
+        width: 100%;
+    }
+
+    .btn-reset-filtros {
+        width: 100%;
+        text-align: center;
+    }
+}
+
+/* ==========================================================================
+   TEMA ESCURO - HISTORICO DE BAIXAS
+   ========================================================================== */
+:root[data-theme="dark"] .historico-page {
+    color: #f8fafc;
+}
+
+:root[data-theme="dark"] .page-title {
+    color: #ffffff;
+}
+
+:root[data-theme="dark"] .page-subtitle {
+    color: #cbd5e1;
+}
+
+:root[data-theme="dark"] .filtros-card,
+:root[data-theme="dark"] .tabela-card {
+    background: #131b2e !important;
+    border-color: #243048 !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+
+:root[data-theme="dark"] .tabela-title {
+    color: #ffffff !important;
+}
+
+:root[data-theme="dark"] .tabela-sub {
+    color: #cbd5e1 !important;
+}
+
+:root[data-theme="dark"] .estado-box {
+    color: #cbd5e1 !important;
+}
+
+:root[data-theme="dark"] .estado-box.empty h3 {
+    color: #ffffff !important;
+    font-weight: 700;
+}
+
+:root[data-theme="dark"] .estado-box.empty p {
+    color: #cbd5e1 !important;
+}
+
+:root[data-theme="dark"] .field-label {
+    color: #e2e8f0 !important;
+}
+
+:root[data-theme="dark"] .form-input,
+:root[data-theme="dark"] .form-select {
+    background: #0f172a !important;
+    border: 1.5px solid #334155 !important;
+    color: #ffffff !important;
+}
+
+:root[data-theme="dark"] .form-input::placeholder {
+    color: #94a3b8 !important;
+    opacity: 1 !important;
+}
+
+:root[data-theme="dark"] .form-input:focus,
+:root[data-theme="dark"] .form-select:focus {
+    border-color: #f97316 !important;
+    box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.25) !important;
+}
+
+:root[data-theme="dark"] .tabela-historico-wrapper {
+    border-color: #243048 !important;
+}
+
+:root[data-theme="dark"] .tabela-historico th,
+:root[data-theme="dark"] .tabela-auditoria th {
+    background-color: #090d16 !important;
+    color: #e2e8f0 !important;
+    border-bottom: 2px solid #243048 !important;
+}
+
+:root[data-theme="dark"] .tabela-historico td,
+:root[data-theme="dark"] .tabela-auditoria td {
+    color: #cbd5e1 !important;
+    border-bottom: 1px solid #243048 !important;
+}
+
+:root[data-theme="dark"] .tabela-historico tr:hover,
+:root[data-theme="dark"] .tabela-auditoria tr:hover {
+    background-color: rgba(255, 255, 255, 0.03) !important;
+}
+
+:root[data-theme="dark"] .produto-nome {
+    color: #ffffff !important;
+}
+
+:root[data-theme="dark"] .chip-loja {
+    background: #0f172a !important;
+    color: #cbd5e1 !important;
+    border: 1px solid #334155 !important;
+}
+
+:root[data-theme="dark"] .chip-codigo {
+    background: #0f172a !important;
+    color: #fb923c !important;
+    border: 1px solid #334155 !important;
+}
+
+:root[data-theme="dark"] .data-validade-txt {
+    color: #ffffff !important;
+}
+
+:root[data-theme="dark"] .btn-reset-filtros {
+    background: #131b2e !important;
+    border-color: #243048 !important;
+    color: #cbd5e1 !important;
+}
+
+:root[data-theme="dark"] .btn-reset-filtros:hover {
+    background: #1c273e !important;
+    color: #ffffff !important;
+}
+
+:root[data-theme="dark"] .btn-desfazer-baixa {
+    background: #090d16 !important;
+    border-color: #243048 !important;
+    color: #cbd5e1 !important;
+}
+
+:root[data-theme="dark"] .btn-desfazer-baixa:hover {
+    background: #1a2234 !important;
+    color: #ffffff !important;
+}
+
+:root[data-theme="dark"] .motivo-ajuste {
+    background: rgba(249, 115, 22, 0.18) !important;
+    color: #fb923c !important;
+}
+
+:root[data-theme="dark"] .promo-nao,
+:root[data-theme="dark"] .motivo-outro {
+    background: #1a2234 !important;
+    color: #cbd5e1 !important;
 }

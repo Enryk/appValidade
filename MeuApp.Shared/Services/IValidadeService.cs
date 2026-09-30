@@ -12,6 +12,8 @@ public interface IValidadeService
     Task<List<MembroTime>> GetMembrosTimeAsync(int? contaId = null);
     Task<MembroTime> AdicionarMembroTimeAsync(string email, string nome, string papel, int? contaId = null);
     Task<bool> RemoverMembroTimeAsync(int membroId, int? contaId = null);
+    Task<string> ObterPapelUsuarioAtualAsync();
+    Task<bool> UsuarioAtualEhColaboradorAsync();
 
     // Lojas
     Task<List<Loja>> GetLojasAsync(int? contaId = null);

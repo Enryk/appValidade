@@ -1,7 +1,6 @@
 @page "/confirmar-email"
 @layout MeuApp.Shared.Layout.AuthLayout
 @inject IAuthService AuthService
-@inject IEmailService EmailService
 @inject NavigationManager Navigation
 
 <div class="auth-card">
@@ -41,25 +40,6 @@
 
     @if (!validadoComSucesso)
     {
-        <!-- Painel de Simulação para desenvolvimento / testes imediatos -->
-        @if (ultimoEmailSimulado != null && (string.IsNullOrEmpty(email) || ultimoEmailSimulado.Destinatario.Equals(email, StringComparison.OrdinalIgnoreCase)))
-        {
-            <div class="simulacao-box">
-                <div class="simulacao-header">
-                    <span>💡 Modo Demonstração (Código do E-mail)</span>
-                </div>
-                <p class="simulacao-desc">
-                    Como o app está rodando localmente, capturamos o código enviado para você testar imediatamente:
-                </p>
-                <div class="simulacao-codigo-area">
-                    <span class="simulacao-codigo">@ultimoEmailSimulado.CodigoConfirmacao</span>
-                    <button type="button" class="btn-usar-codigo" @onclick="() => UsarCodigoSimulado(ultimoEmailSimulado.CodigoConfirmacao)">
-                        Preencher Código
-                    </button>
-                </div>
-            </div>
-        }
-
         <form @onsubmit="ValidarCodigo" class="auth-form">
             <div class="form-group">
                 <label class="form-label" for="conf-codigo">Código de 6 Dígitos</label>
@@ -121,8 +101,6 @@
     private bool validadoComSucesso = false;
     private string? mensagemErro;
     private string? mensagemSucesso;
-    private UltimoEmailEnviado? ultimoEmailSimulado;
-
     private bool reenvioDesabilitado = false;
     private int segundosRestantes = 0;
 
@@ -131,29 +109,12 @@
         if (!string.IsNullOrWhiteSpace(Email))
             email = Email;
 
-        ultimoEmailSimulado = EmailService.ObterUltimoEmailSimulado();
-
-        // Se a página foi aberta com token de link direto (/confirmar-email?token=xyz)
+        // Se a página foi aberta com token de link direto, redireciona para definir a senha
         if (!string.IsNullOrWhiteSpace(Token))
         {
-            carregando = true;
-            var res = await AuthService.ConfirmarEmailAsync(Token);
-            carregando = false;
-            if (res.Sucesso)
-            {
-                validadoComSucesso = true;
-                mensagemSucesso = res.Mensagem;
-            }
-            else
-            {
-                mensagemErro = res.Mensagem;
-            }
+            Navigation.NavigateTo($"/definir-senha?token={Token}", replace: true);
+            return;
         }
-    }
-
-    private void UsarCodigoSimulado(string cod)
-    {
-        codigo = cod;
     }
 
     private async Task ValidarCodigo()
@@ -207,8 +168,7 @@
             var res = await AuthService.ReenviarConfirmacaoAsync(email, Navigation.BaseUri);
             if (res.Sucesso)
             {
-                mensagemSucesso = "Novo código enviado com sucesso!";
-                ultimoEmailSimulado = EmailService.ObterUltimoEmailSimulado();
+                mensagemSucesso = "Novo código enviado para seu e-mail com sucesso!";
                 IniciarContadorReenvio();
             }
             else

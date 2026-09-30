@@ -10,7 +10,7 @@
 }
 else if (autenticado)
 {
-    <div class="app-layout @(sidebarRecolhida ? "sidebar-collapsed" : "")">
+    <div class="app-layout @(sidebarRecolhida ? "sidebar-collapsed" : "") @(ThemeService.IsDarkMode ? "theme-dark" : "theme-light")" data-theme="@ThemeService.CurrentTheme">
         <aside class="sidebar-wrapper">
             <NavMenu IsDesktopCollapsed="sidebarRecolhida" OnToggleDesktop="ToggleSidebar" />
         </aside>
@@ -44,6 +44,7 @@ else if (autenticado)
 
 @code {
     [Inject] private IAuthService AuthService { get; set; } = default!;
+    [Inject] private IThemeService ThemeService { get; set; } = default!;
     [Inject] private NavigationManager Navigation { get; set; } = default!;
 
     private ErrorBoundary? errorBoundary;
@@ -53,8 +54,22 @@ else if (autenticado)
 
     protected override async Task OnInitializedAsync()
     {
+        ThemeService.OnThemeChanged += HandleThemeChanged;
         await VerificarAutenticacao();
         AuthService.OnAuthStateChanged += async () => await VerificarAutenticacao();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await ThemeService.InicializarTemaAsync();
+        }
+    }
+
+    private async void HandleThemeChanged()
+    {
+        await InvokeAsync(StateHasChanged);
     }
 
     private async Task VerificarAutenticacao()

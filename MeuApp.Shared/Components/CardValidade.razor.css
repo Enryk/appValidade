@@ -136,22 +136,24 @@
     align-items: center;
     justify-content: center;
     gap: 8px;
-    background: #4f46e5;
+    background: linear-gradient(135deg, #ff7a18 0%, #ea580c 100%);
     color: #ffffff;
     border: none;
     border-radius: 10px;
     font-size: 0.92rem;
-    font-weight: 600;
+    font-weight: 700;
     cursor: pointer;
-    transition: background-color 0.2s ease;
+    box-shadow: 0 2px 8px rgba(234, 88, 12, 0.25);
+    transition: all 0.2s ease;
 }
 
 .btn-action:hover {
-    background: #4338ca;
+    background: #c2410c;
+    transform: translateY(-1px);
 }
 
 .btn-action:active {
-    background: #3730a3;
+    background: #9a3412;
 }
 
 .action-icon {
@@ -169,4 +171,31 @@
         width: auto;
         padding: 8px 18px;
     }
+}
+
+/* ========================================================
+   TEMA ESCURO - CARD VALIDADE
+   ======================================================== */
+:root[data-theme="dark"] .validade-card {
+    background: #131b2e !important;
+    border-color: #243048 !important;
+    color: #f8fafc !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+
+:root[data-theme="dark"] .item-name {
+    color: #ffffff !important;
+}
+
+:root[data-theme="dark"] .category-badge {
+    background: #090d16 !important;
+    color: #cbd5e1 !important;
+}
+
+:root[data-theme="dark"] .info-label {
+    color: #cbd5e1 !important;
+}
+
+:root[data-theme="dark"] .info-value {
+    color: #ffffff !important;
 }

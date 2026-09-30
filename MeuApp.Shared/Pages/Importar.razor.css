@@ -123,7 +123,7 @@
 
 .config-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
     gap: 20px;
 }
 
@@ -134,11 +134,11 @@
 }
 
 .config-label {
-    font-size: 0.8rem;
+    font-size: 0.74rem;
     font-weight: 700;
     text-transform: uppercase;
     color: #475569;
-    letter-spacing: 0.4px;
+    letter-spacing: 0.25px;
 }
 
 .select-loja-custom {
@@ -153,7 +153,8 @@
 }
 
 .select-loja-custom:focus {
-    border-color: #6366f1;
+    border-color: #f97316;
+    box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.15);
 }
 
 .data-fixada-badge {
@@ -181,8 +182,8 @@
 .upload-dropzone {
     border: 2px dashed #cbd5e1;
     background: #f8fafc;
-    border-radius: 18px;
-    padding: 36px 20px;
+    border-radius: 16px;
+    padding: 30px 20px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -191,11 +192,12 @@
     cursor: pointer;
     transition: all 0.2s ease;
     position: relative;
+    overflow: hidden;
 }
 
 .upload-dropzone:hover {
-    border-color: #6366f1;
-    background: #f5f3ff;
+    border-color: #ea580c;
+    background: #fff7ed;
 }
 
 .upload-dropzone.uploading {
@@ -203,37 +205,83 @@
     cursor: wait;
 }
 
+::deep input[type="file"],
 .input-file-hidden {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    opacity: 0;
-    cursor: pointer;
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    opacity: 0 !important;
+    cursor: pointer !important;
+    z-index: 10 !important;
+    margin: 0 !important;
+    padding: 0 !important;
 }
 
-.upload-icon {
-    font-size: 3rem;
+.upload-icon-wrapper {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: #fff7ed;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     margin-bottom: 12px;
+    transition: transform 0.2s ease;
 }
 
-.upload-text strong {
-    font-size: 1.05rem;
+.upload-dropzone:hover .upload-icon-wrapper {
+    transform: translateY(-2px);
+    background: #ffedd5;
+}
+
+.upload-text {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+}
+
+.upload-title {
+    font-size: 0.95rem;
+    font-weight: 700;
     color: #1e293b;
-    display: block;
+    margin: 0;
+}
+
+.btn-fake-upload {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: linear-gradient(135deg, #ff7a18 0%, #ea580c 100%);
+    color: #ffffff;
+    padding: 8px 18px;
+    border-radius: 8px;
+    font-size: 0.84rem;
+    font-weight: 600;
+    margin-top: 4px;
+    margin-bottom: 4px;
+    box-shadow: 0 2px 8px rgba(234, 88, 12, 0.25);
+    pointer-events: none;
 }
 
 .upload-sub {
-    font-size: 0.82rem;
+    font-size: 0.78rem;
     color: #64748b;
-    margin-top: 4px;
-    display: block;
 }
 
-.file-loaded-name {
-    color: #4f46e5 !important;
-    font-size: 1.1rem !important;
+.file-loaded-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: #ecfdf5;
+    border: 1.5px solid #a7f3d0;
+    color: #065f46;
+    padding: 8px 16px;
+    border-radius: 999px;
+    font-size: 0.88rem;
+    font-weight: 700;
 }
 
 /* Pré-visualização */
@@ -361,10 +409,13 @@
 /* Tabela de Prévia */
 .table-container {
     overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    width: 100%;
 }
 
 .tabela-previa {
     width: 100%;
+    min-width: 580px;
     border-collapse: collapse;
 }
 
@@ -439,4 +490,196 @@
     background: #f8fafc;
     border-radius: 8px;
     margin-top: 12px;
+}
+
+/* ========================================================
+   RESPONSIVIDADE COMPLETA: TELAS PEQUENAS E MOBILE (< 680px)
+   ======================================================== */
+@media (max-width: 680px) {
+    .importar-page {
+        padding: 12px 12px 32px 12px;
+    }
+
+    .page-title {
+        font-size: 1.35rem;
+    }
+
+    .config-card, .preview-card {
+        padding: 16px 14px;
+        border-radius: 14px;
+        margin-bottom: 16px;
+    }
+
+    .config-grid {
+        grid-template-columns: 1fr;
+        gap: 14px;
+    }
+
+    .metrics-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+    }
+
+    .preview-header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+    }
+
+    .btn-confirmar-importacao {
+        width: 100%;
+        justify-content: center;
+        text-align: center;
+    }
+
+    .upload-dropzone {
+        padding: 24px 14px;
+    }
+
+    .alert-banner {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+        padding: 14px;
+    }
+
+    .alert-actions {
+        width: 100%;
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .btn-ver-monitoramento, .btn-nova-importacao {
+        width: 100%;
+        text-align: center;
+        justify-content: center;
+    }
+}
+
+/* ==========================================================================
+   TEMA ESCURO - IMPORTAR PLANILHA
+   ========================================================================== */
+:root[data-theme="dark"] .importar-page {
+    color: #f8fafc;
+}
+
+:root[data-theme="dark"] .page-title {
+    color: #ffffff;
+}
+
+:root[data-theme="dark"] .page-subtitle {
+    color: #cbd5e1;
+}
+
+:root[data-theme="dark"] .config-card,
+:root[data-theme="dark"] .preview-card,
+:root[data-theme="dark"] .empty-state-card {
+    background: #131b2e !important;
+    border-color: #243048 !important;
+    color: #f8fafc !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+
+:root[data-theme="dark"] .card-title,
+:root[data-theme="dark"] .preview-title,
+:root[data-theme="dark"] .empty-state-card h2 {
+    color: #ffffff !important;
+}
+
+:root[data-theme="dark"] .config-label,
+:root[data-theme="dark"] .preview-subtitle,
+:root[data-theme="dark"] .config-help,
+:root[data-theme="dark"] .empty-state-card p {
+    color: #cbd5e1 !important;
+}
+
+:root[data-theme="dark"] .select-loja-custom {
+    background: #090d16 !important;
+    border-color: #243048 !important;
+    color: #f8fafc !important;
+}
+
+:root[data-theme="dark"] .select-loja-custom:focus {
+    border-color: #f97316 !important;
+    box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.2) !important;
+}
+
+:root[data-theme="dark"] .data-fixada-badge {
+    background: #090d16 !important;
+    border-color: #243048 !important;
+    color: #f8fafc !important;
+}
+
+:root[data-theme="dark"] .upload-dropzone {
+    background: #090d16 !important;
+    border-color: #243048 !important;
+}
+
+:root[data-theme="dark"] .upload-dropzone:hover {
+    border-color: #f97316 !important;
+    background: rgba(249, 115, 22, 0.08) !important;
+}
+
+:root[data-theme="dark"] .upload-icon-wrapper {
+    background: rgba(249, 115, 22, 0.15) !important;
+}
+
+:root[data-theme="dark"] .upload-title {
+    color: #ffffff !important;
+}
+
+:root[data-theme="dark"] .upload-sub {
+    color: #cbd5e1 !important;
+}
+
+:root[data-theme="dark"] .metric-box {
+    background: #090d16 !important;
+    border-color: #243048 !important;
+}
+
+:root[data-theme="dark"] .metric-num {
+    color: #ffffff !important;
+}
+
+:root[data-theme="dark"] .metric-label {
+    color: #cbd5e1 !important;
+}
+
+:root[data-theme="dark"] .preview-table-wrapper {
+    border-color: #243048 !important;
+}
+
+:root[data-theme="dark"] .tabela-previa th,
+:root[data-theme="dark"] .preview-table th {
+    background-color: #090d16 !important;
+    color: #e2e8f0 !important;
+    border-bottom: 2px solid #243048 !important;
+}
+
+:root[data-theme="dark"] .tabela-previa td,
+:root[data-theme="dark"] .preview-table td {
+    color: #cbd5e1 !important;
+    border-bottom: 1px solid #243048 !important;
+}
+
+:root[data-theme="dark"] .tabela-previa tr:hover,
+:root[data-theme="dark"] .preview-table tr:hover {
+    background-color: rgba(255, 255, 255, 0.03) !important;
+}
+
+:root[data-theme="dark"] .data-val-chip {
+    color: #ffffff !important;
+}
+
+:root[data-theme="dark"] .row-invalido {
+    background: rgba(239, 68, 68, 0.15) !important;
+}
+
+:root[data-theme="dark"] .row-repetido {
+    background: rgba(245, 158, 11, 0.1) !important;
+}
+
+:root[data-theme="dark"] .preview-footer-notice {
+    background: #090d16 !important;
+    color: #cbd5e1 !important;
 }

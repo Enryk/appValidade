@@ -62,9 +62,9 @@
 }
 
 .card-loja-form.modo-edicao {
-    border: 2px solid #6366f1;
-    background: #fdfefe;
-    box-shadow: 0 4px 16px rgba(99, 102, 241, 0.08);
+    border: 2px solid #ea580c;
+    background: #fff7ed;
+    box-shadow: 0 4px 16px rgba(234, 88, 12, 0.12);
 }
 
 .form-header-row {
@@ -84,8 +84,9 @@
 }
 
 .badge-edicao {
-    background: #e0e7ff;
-    color: #4338ca;
+    background: #fff7ed;
+    color: #c2410c;
+    border: 1px solid #fed7aa;
     font-size: 0.75rem;
     font-weight: 700;
     padding: 4px 10px;
@@ -110,10 +111,11 @@
 }
 
 .field-label {
-    font-size: 0.75rem;
+    font-size: 0.74rem;
     font-weight: 700;
     color: #475569;
     text-transform: uppercase;
+    letter-spacing: 0.25px;
 }
 
 .form-input {
@@ -125,7 +127,8 @@
 }
 
 .form-input:focus {
-    border-color: #6366f1;
+    border-color: #f97316;
+    box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.15);
 }
 
 .form-actions {
@@ -136,7 +139,7 @@
 }
 
 .btn-salvar-loja {
-    background: #6366f1;
+    background: linear-gradient(135deg, #ff7a18 0%, #ea580c 100%);
     color: #ffffff;
     border: none;
     padding: 10px 20px;
@@ -145,10 +148,13 @@
     cursor: pointer;
     min-height: 44px;
     font-size: 0.9rem;
+    box-shadow: 0 2px 8px rgba(234, 88, 12, 0.25);
+    transition: all 0.15s ease;
 }
 
 .btn-salvar-loja:hover {
-    background: #4f46e5;
+    background: #c2410c;
+    transform: translateY(-1px);
 }
 
 .btn-salvar-alteracoes {
@@ -185,7 +191,7 @@
 
 .lojas-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
     gap: 14px;
 }
 
@@ -198,6 +204,9 @@
     align-items: center;
     justify-content: space-between;
     gap: 12px;
+    box-sizing: border-box;
+    min-width: 0;
+    max-width: 100%;
     transition: all 0.15s ease;
 }
 
@@ -207,8 +216,8 @@
 }
 
 .loja-item-card.card-sendo-editado {
-    border: 2px solid #6366f1;
-    background: #f5f3ff;
+    border: 2px solid #ea580c;
+    background: #fff7ed;
 }
 
 .loja-main-info {
@@ -216,11 +225,14 @@
     align-items: center;
     gap: 12px;
     min-width: 0;
+    flex: 1 1 auto;
 }
 
 .loja-icon-box {
     font-size: 1.6rem;
-    background: #e0e7ff;
+    background: #fff7ed;
+    color: #ea580c;
+    border: 1px solid #fed7aa;
     width: 44px;
     height: 44px;
     border-radius: 10px;
@@ -234,20 +246,22 @@
     display: flex;
     flex-direction: column;
     min-width: 0;
+    flex: 1 1 auto;
+    gap: 2px;
 }
 
 .loja-codigo {
     font-size: 0.75rem;
     font-weight: 700;
-    color: #6366f1;
+    color: #ea580c;
 }
 
 .loja-nome {
     font-size: 0.95rem;
     color: #1e293b;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    word-break: break-word;
+    overflow-wrap: break-word;
+    line-height: 1.35;
 }
 
 .loja-card-actions {
@@ -269,14 +283,15 @@
 }
 
 .btn-editar-loja {
-    background: #e0e7ff;
-    color: #3730a3;
-    border: 1px solid #c7d2fe;
+    background: #fff7ed;
+    color: #c2410c;
+    border: 1px solid #fed7aa;
 }
 
 .btn-editar-loja:hover {
-    background: #6366f1;
+    background: #ea580c;
     color: #ffffff;
+    border-color: #ea580c;
 }
 
 .btn-excluir-loja {
@@ -396,36 +411,54 @@
    NAVEGAÇÃO DE ABAS
    ========================================== */
 .tabs-nav-lojas {
-    display: flex;
-    gap: 8px;
+    display: inline-flex;
+    align-items: center;
+    background: #f1f5f9;
+    padding: 4px;
+    border-radius: 10px;
+    border: 1px solid #e2e8f0;
     margin-bottom: 22px;
-    border-bottom: 2px solid #e2e8f0;
-    padding-bottom: 4px;
+    gap: 4px;
 }
 
 .tab-btn {
     background: transparent;
-    border: none;
-    font-size: 0.95rem;
-    font-weight: 700;
+    border: 1px solid transparent;
+    font-size: 0.90rem;
+    font-weight: 600;
     color: #64748b;
-    padding: 10px 18px;
-    border-radius: 10px 10px 0 0;
+    padding: 8px 18px;
+    border-radius: 8px;
     cursor: pointer;
-    transition: all 0.2s ease;
-    border-bottom: 3px solid transparent;
-    margin-bottom: -6px;
+    transition: all 0.15s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    line-height: 1.2;
+    margin-bottom: 0;
 }
 
 .tab-btn:hover {
-    color: #4f46e5;
-    background: #f8fafc;
+    color: #1e293b;
+    background: rgba(255, 255, 255, 0.6);
 }
 
 .tab-btn.active {
-    color: #4f46e5;
-    border-bottom: 3px solid #6366f1;
-    background: #eef2ff;
+    color: #ea580c;
+    background: #ffffff;
+    font-weight: 700;
+    border-color: #fed7aa;
+    box-shadow: 0 1px 3px rgba(234, 88, 12, 0.12);
+}
+
+.tab-icon {
+    flex-shrink: 0;
+}
+
+.btn-salvar-loja:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+    filter: grayscale(20%);
 }
 
 /* Empty State */
@@ -458,8 +491,8 @@
 
 /* Banner Informativo de Times */
 .card-time-info-banner {
-    background: linear-gradient(135deg, #eef2ff 0%, #f0fdf4 100%);
-    border: 1.5px solid #c7d2fe;
+    background: #fff7ed;
+    border: 1.5px solid #fed7aa;
     border-radius: 14px;
     padding: 18px 20px;
     margin-bottom: 20px;
@@ -483,7 +516,7 @@
 
 .info-banner-content strong {
     font-size: 1rem;
-    color: #1e1b4b;
+    color: #c2410c;
     display: block;
     margin-bottom: 4px;
 }
@@ -497,18 +530,18 @@
 
 .info-banner-conta {
     font-size: 0.82rem;
-    color: #4338ca;
+    color: #c2410c;
     background: #ffffff;
     display: inline-block;
     padding: 4px 12px;
     border-radius: 20px;
-    border: 1px solid #c7d2fe;
+    border: 1px solid #fed7aa;
 }
 
 /* Grid de Membros */
 .membros-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
     gap: 14px;
 }
 
@@ -522,6 +555,8 @@
     justify-content: space-between;
     gap: 14px;
     box-sizing: border-box;
+    min-width: 0;
+    max-width: 100%;
     transition: all 0.15s ease;
 }
 
@@ -572,6 +607,7 @@
     gap: 6px;
     align-items: center;
     margin-bottom: 2px;
+    flex-wrap: wrap;
 }
 
 .badge-dono {
@@ -608,32 +644,124 @@
     font-size: 0.72rem;
     color: #94a3b8;
     margin-top: 2px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    word-break: break-word;
 }
 
 .membro-nome {
     font-size: 0.95rem;
     color: #1e293b;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    word-break: break-word;
+    overflow-wrap: break-word;
+    line-height: 1.35;
 }
 
 .membro-email {
-    font-size: 0.8rem;
+    font-size: 0.82rem;
     color: #64748b;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    word-break: break-all;
+    overflow-wrap: break-word;
+    line-height: 1.35;
 }
 
-@media (max-width: 520px) {
+/* ========================================================
+   RESPONSIVIDADE COMPLETA: TELAS PEQUENAS E MOBILE (< 680px)
+   ======================================================== */
+@media (max-width: 680px) {
+    .lojas-page {
+        padding: 12px 12px 32px 12px;
+    }
+
+    .page-title {
+        font-size: 1.35rem;
+    }
+
+    .card-loja-form, .card-lojas-lista {
+        padding: 16px 14px;
+        border-radius: 14px;
+        margin-bottom: 16px;
+    }
+
+    .tabs-nav-lojas {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        width: 100%;
+        gap: 4px;
+        box-sizing: border-box;
+        margin-bottom: 16px;
+    }
+
+    .tab-btn {
+        padding: 9px 8px;
+        font-size: 0.82rem;
+        justify-content: center;
+        border-radius: 8px;
+        margin-bottom: 0;
+        white-space: normal;
+        line-height: 1.25;
+    }
+
+    .tab-btn.active {
+        border-color: #e2e8f0;
+    }
+
+    .lojas-grid, .membros-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .form-actions {
+        flex-direction: column-reverse;
+        gap: 10px;
+        width: 100%;
+    }
+
+    .btn-salvar-loja, .btn-salvar-alteracoes, .btn-cancelar-edicao {
+        width: 100%;
+        justify-content: center;
+        text-align: center;
+    }
+
+    .card-time-info-banner {
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 14px;
+        gap: 12px;
+    }
+}
+
+@media (max-width: 560px) {
+    .loja-item-card {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+        padding: 14px;
+    }
+
+    .loja-main-info {
+        width: 100%;
+    }
+
+    .loja-card-actions {
+        width: 100%;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+    }
+
+    .btn-acao-loja {
+        width: 100%;
+        justify-content: center;
+        text-align: center;
+    }
+
     .membro-item-card {
         flex-direction: column;
         align-items: stretch;
         gap: 12px;
+        padding: 14px;
+    }
+
+    .membro-main-info {
+        width: 100%;
     }
 
     .membro-item-card .loja-card-actions {
@@ -643,5 +771,208 @@
     .membro-item-card .loja-card-actions .btn-excluir-loja {
         width: 100%;
         justify-content: center;
+        text-align: center;
     }
+
+    .modal-dialog-loja {
+        max-width: calc(100vw - 24px);
+        border-radius: 14px;
+    }
+
+    .modal-footer-loja {
+        flex-direction: column-reverse;
+        gap: 8px;
+    }
+
+    .btn-cancelar-modal, .btn-confirmar-exclusao {
+        width: 100%;
+        justify-content: center;
+        text-align: center;
+    }
+}
+
+/* ==========================================================================
+   TEMA ESCURO - GESTAO DE LOJAS
+   ========================================================================== */
+:root[data-theme="dark"] .lojas-page {
+    color: #f8fafc;
+}
+
+:root[data-theme="dark"] .page-title {
+    color: #ffffff;
+}
+
+:root[data-theme="dark"] .page-subtitle {
+    color: #cbd5e1;
+}
+
+:root[data-theme="dark"] .card-loja-form,
+:root[data-theme="dark"] .card-lojas-lista {
+    background: #131b2e !important;
+    border-color: #243048 !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+
+:root[data-theme="dark"] .card-loja-form.modo-edicao {
+    border-color: #f97316 !important;
+    background: rgba(249, 115, 22, 0.08) !important;
+}
+
+:root[data-theme="dark"] .form-title,
+:root[data-theme="dark"] .lista-title {
+    color: #ffffff !important;
+}
+
+:root[data-theme="dark"] .field-label {
+    color: #cbd5e1 !important;
+}
+
+:root[data-theme="dark"] .form-input {
+    background: #090d16 !important;
+    border-color: #243048 !important;
+    color: #f8fafc !important;
+}
+
+:root[data-theme="dark"] .form-input:focus {
+    border-color: #f97316 !important;
+    box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.2) !important;
+}
+
+:root[data-theme="dark"] .tabs-nav-lojas {
+    background: #0f172a !important;
+    border: 1.5px solid #334155 !important;
+}
+
+:root[data-theme="dark"] .tab-btn {
+    color: #94a3b8 !important;
+}
+
+:root[data-theme="dark"] .tab-btn:hover {
+    color: #ffffff !important;
+    background: rgba(255, 255, 255, 0.06) !important;
+}
+
+:root[data-theme="dark"] .tab-btn.active {
+    color: #ffffff !important;
+    background: linear-gradient(135deg, #ff7a18 0%, #ea580c 100%) !important;
+    border-color: transparent !important;
+    box-shadow: 0 2px 10px rgba(234, 88, 12, 0.35) !important;
+}
+
+:root[data-theme="dark"] .loja-item-card,
+:root[data-theme="dark"] .membro-item-card {
+    background: #090d16 !important;
+    border-color: #243048 !important;
+}
+
+:root[data-theme="dark"] .loja-item-card:hover,
+:root[data-theme="dark"] .membro-item-card:hover {
+    border-color: #f97316 !important;
+    background: #131b2e !important;
+}
+
+:root[data-theme="dark"] .loja-item-card.card-sendo-editado {
+    border-color: #f97316 !important;
+    background: rgba(249, 115, 22, 0.12) !important;
+}
+
+:root[data-theme="dark"] .loja-icon-box {
+    background: rgba(249, 115, 22, 0.15) !important;
+    border-color: rgba(249, 115, 22, 0.3) !important;
+    color: #fb923c !important;
+}
+
+:root[data-theme="dark"] .loja-nome,
+:root[data-theme="dark"] .membro-nome {
+    color: #ffffff !important;
+}
+
+:root[data-theme="dark"] .loja-codigo {
+    color: #fb923c !important;
+}
+
+:root[data-theme="dark"] .membro-email {
+    color: #cbd5e1 !important;
+}
+
+:root[data-theme="dark"] .btn-editar-loja {
+    background: rgba(249, 115, 22, 0.15) !important;
+    color: #fb923c !important;
+    border-color: rgba(249, 115, 22, 0.3) !important;
+}
+
+:root[data-theme="dark"] .btn-editar-loja:hover {
+    background: #ea580c !important;
+    color: #ffffff !important;
+}
+
+:root[data-theme="dark"] .card-time-info-banner {
+    background: rgba(249, 115, 22, 0.1) !important;
+    border-color: rgba(249, 115, 22, 0.25) !important;
+}
+
+:root[data-theme="dark"] .info-banner-icon {
+    background: #131b2e !important;
+}
+
+:root[data-theme="dark"] .info-banner-content strong {
+    color: #fb923c !important;
+}
+
+:root[data-theme="dark"] .info-banner-content p {
+    color: #cbd5e1 !important;
+}
+
+:root[data-theme="dark"] .info-banner-conta {
+    background: #090d16 !important;
+    color: #fb923c !important;
+    border-color: #243048 !important;
+}
+
+:root[data-theme="dark"] .empty-state-loja {
+    background: #090d16 !important;
+    border-color: #243048 !important;
+}
+
+:root[data-theme="dark"] .empty-text {
+    color: #ffffff !important;
+}
+
+:root[data-theme="dark"] .empty-subtext {
+    color: #cbd5e1 !important;
+}
+
+:root[data-theme="dark"] .modal-dialog-loja {
+    background: #131b2e !important;
+    border: 1px solid #243048 !important;
+    color: #f8fafc !important;
+}
+
+:root[data-theme="dark"] .modal-title-loja {
+    color: #ffffff !important;
+}
+
+:root[data-theme="dark"] .modal-body-loja {
+    color: #cbd5e1 !important;
+}
+
+:root[data-theme="dark"] .modal-header-loja {
+    border-bottom-color: #243048 !important;
+}
+
+:root[data-theme="dark"] .modal-footer-loja {
+    border-top-color: #243048 !important;
+}
+
+:root[data-theme="dark"] .btn-cancelar-modal,
+:root[data-theme="dark"] .btn-cancelar-edicao {
+    background: #090d16 !important;
+    border-color: #243048 !important;
+    color: #cbd5e1 !important;
+}
+
+:root[data-theme="dark"] .btn-cancelar-modal:hover,
+:root[data-theme="dark"] .btn-cancelar-edicao:hover {
+    background: #131b2e !important;
+    color: #ffffff !important;
 }

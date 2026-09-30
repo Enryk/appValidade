@@ -1,10 +1,16 @@
 @namespace MeuApp.Shared.Layout
 
-<div class="nav-container @(IsDesktopCollapsed ? "nav-collapsed" : "")">
+<div class="nav-container @(IsDesktopCollapsed ? "nav-collapsed" : "") @(ThemeService.IsDarkMode ? "theme-dark" : "theme-light")">
     <!-- Topo / Branding -->
     <div class="nav-brand-header">
         <div class="brand-logo-area" title="ValidadeApp - Controle por Loja">
-            <span class="brand-icon">📦</span>
+            <div class="brand-icon">
+                <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                    <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+                    <line x1="12" y1="22.08" x2="12" y2="12"></line>
+                </svg>
+            </div>
             <div class="brand-text">
                 <span class="brand-name">ValidadeApp</span>
                 <span class="brand-sub">Controle por Loja</span>
@@ -16,12 +22,39 @@
                 class="btn-toggle-desktop" 
                 @onclick="ToggleDesktop" 
                 title="@(IsDesktopCollapsed ? "Expandir Menu" : "Recolher Menu (Ganha mais espaço na tela)")">
-            <span class="toggle-icon">@(IsDesktopCollapsed ? "▶" : "◀")</span>
+            <span class="toggle-icon">
+                @if (IsDesktopCollapsed)
+                {
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="9 18 15 12 9 6"></polyline>
+                    </svg>
+                }
+                else
+                {
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="15 18 9 12 15 6"></polyline>
+                    </svg>
+                }
+            </span>
         </button>
 
         <!-- Botão Hamburger no mobile -->
         <button type="button" class="btn-toggle-menu" @onclick="ToggleNavMenu" aria-label="Abrir Menu">
-            <span class="hamburger-icon">@(collapseNavMenu ? "☰" : "✕")</span>
+            @if (collapseNavMenu)
+            {
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="3" y1="12" x2="21" y2="12"></line>
+                    <line x1="3" y1="6" x2="21" y2="6"></line>
+                    <line x1="3" y1="18" x2="21" y2="18"></line>
+                </svg>
+            }
+            else
+            {
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            }
         </button>
     </div>
 
@@ -31,41 +64,152 @@
 
         <nav class="nav-menu-list">
             <NavLink class="nav-custom-link" href="" Match="NavLinkMatch.All" @onclick="CollapseMenuOnMobile" title="Monitoramento">
-                <span class="nav-icon">📋</span>
+                <span class="nav-icon">
+                    <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="3" width="7" height="9" rx="1.5"></rect>
+                        <rect x="14" y="3" width="7" height="5" rx="1.5"></rect>
+                        <rect x="14" y="12" width="7" height="9" rx="1.5"></rect>
+                        <rect x="3" y="16" width="7" height="5" rx="1.5"></rect>
+                    </svg>
+                </span>
                 <span class="nav-text">Monitoramento</span>
             </NavLink>
 
             <NavLink class="nav-custom-link" href="coleta" @onclick="CollapseMenuOnMobile" title="Coleta & Bipagem">
-                <span class="nav-icon">📟</span>
+                <span class="nav-icon">
+                    <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M3 7V5a2 2 0 0 1 2-2h2"></path>
+                        <path d="M17 3h2a2 2 0 0 1 2 2v2"></path>
+                        <path d="M21 17v2a2 2 0 0 1-2 2h-2"></path>
+                        <path d="M7 21H5a2 2 0 0 1-2-2v-2"></path>
+                        <line x1="7" y1="8" x2="7" y2="16"></line>
+                        <line x1="12" y1="8" x2="12" y2="16"></line>
+                        <line x1="17" y1="8" x2="17" y2="16"></line>
+                    </svg>
+                </span>
                 <span class="nav-text">Coleta & Bipagem</span>
             </NavLink>
 
             <NavLink class="nav-custom-link" href="historico" @onclick="CollapseMenuOnMobile" title="Histórico de Baixas">
-                <span class="nav-icon">📜</span>
+                <span class="nav-icon">
+                    <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <polyline points="12 6 12 12 16 14"></polyline>
+                    </svg>
+                </span>
                 <span class="nav-text">Histórico de Baixas</span>
             </NavLink>
 
-            <NavLink class="nav-custom-link" href="importar" @onclick="CollapseMenuOnMobile" title="Importar Planilha">
-                <span class="nav-icon">📥</span>
-                <span class="nav-text">Importar Planilha</span>
-            </NavLink>
+            @if (!ehColaborador)
+            {
+                <NavLink class="nav-custom-link" href="importar" @onclick="CollapseMenuOnMobile" title="Importar Planilha">
+                    <span class="nav-icon">
+                        <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                            <polyline points="14 2 14 8 20 8"></polyline>
+                            <line x1="12" y1="18" x2="12" y2="12"></line>
+                            <polyline points="9 15 12 12 15 15"></polyline>
+                        </svg>
+                    </span>
+                    <span class="nav-text">Importar Planilha</span>
+                </NavLink>
 
-            <NavLink class="nav-custom-link" href="lojas" @onclick="CollapseMenuOnMobile" title="Gestão de Lojas">
-                <span class="nav-icon">🏬</span>
-                <span class="nav-text">Gestão de Lojas</span>
-            </NavLink>
+                <NavLink class="nav-custom-link" href="lojas" @onclick="CollapseMenuOnMobile" title="Gestão de Lojas">
+                    <span class="nav-icon">
+                        <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                            <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                        </svg>
+                    </span>
+                    <span class="nav-text">Gestão de Lojas</span>
+                </NavLink>
+            }
 
             <NavLink class="nav-custom-link" href="perfil" @onclick="CollapseMenuOnMobile" title="Meu Cadastro e Perfil">
-                <span class="nav-icon">👤</span>
+                <span class="nav-icon">
+                    <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="12" cy="7" r="4"></circle>
+                    </svg>
+                </span>
                 <span class="nav-text">@(usuarioLogado != null ? usuarioLogado.Nome.Split(' ')[0] : "Meu Perfil")</span>
             </NavLink>
         </nav>
 
+        <!-- Rodapé do Menu com Tema, Sair e Status -->
         <div class="nav-footer-status">
+            <!-- Alternador de Tema Claro / Escuro -->
+            <div class="theme-toggle-box" title="Alternar entre Tema Claro e Tema Escuro">
+                <div class="nav-theme-switcher">
+                    <button type="button" 
+                            class="btn-theme-option @(!ThemeService.IsDarkMode ? "active" : "")" 
+                            @onclick='() => DefinirTema("light")'
+                            title="Ativar Tema Claro">
+                        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="5"></circle>
+                            <line x1="12" y1="1" x2="12" y2="3"></line>
+                            <line x1="12" y1="21" x2="12" y2="23"></line>
+                            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                            <line x1="1" y1="12" x2="3" y2="12"></line>
+                            <line x1="21" y1="12" x2="23" y2="12"></line>
+                            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                        </svg>
+                        <span class="theme-text">Claro</span>
+                    </button>
+                    <button type="button" 
+                            class="btn-theme-option @(ThemeService.IsDarkMode ? "active" : "")" 
+                            @onclick='() => DefinirTema("dark")'
+                            title="Ativar Tema Escuro">
+                        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                        </svg>
+                        <span class="theme-text">Escuro</span>
+                    </button>
+                </div>
+
+                <!-- Botão de tema no modo recolhido -->
+                <button type="button" 
+                        class="btn-theme-toggle-collapsed" 
+                        @onclick="AlternarTema" 
+                        title="@(ThemeService.IsDarkMode ? "Mudar para Tema Claro" : "Mudar para Tema Escuro")">
+                    @if (ThemeService.IsDarkMode)
+                    {
+                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="5"></circle>
+                            <line x1="12" y1="1" x2="12" y2="3"></line>
+                            <line x1="12" y1="21" x2="12" y2="23"></line>
+                            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                            <line x1="1" y1="12" x2="3" y2="12"></line>
+                            <line x1="21" y1="12" x2="23" y2="12"></line>
+                            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                        </svg>
+                    }
+                    else
+                    {
+                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                        </svg>
+                    }
+                </button>
+            </div>
+
+            <!-- Botão Sair -->
             <button type="button" class="btn-nav-logout" @onclick="EfetuarLogout" title="Sair do Sistema (Encerrar Sessão)">
-                <span class="nav-icon">🚪</span>
+                <span class="nav-icon">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                        <polyline points="16 17 21 12 16 7"></polyline>
+                        <line x1="21" y1="12" x2="9" y2="12"></line>
+                    </svg>
+                </span>
                 <span class="nav-text">Sair</span>
             </button>
+
+            <!-- Status do Banco -->
             <div class="status-indicator" title="SQLite Local Ativo">
                 <span class="status-dot"></span>
                 <span class="status-text">SQLite Local Ativo</span>
@@ -79,20 +223,31 @@
     [Parameter] public EventCallback<bool> OnToggleDesktop { get; set; }
 
     [Inject] private IAuthService AuthService { get; set; } = default!;
+    [Inject] private IValidadeService ValidadeService { get; set; } = default!;
+    [Inject] private IThemeService ThemeService { get; set; } = default!;
     [Inject] private NavigationManager Navigation { get; set; } = default!;
 
     private bool collapseNavMenu = true;
     private Usuario? usuarioLogado;
+    private bool ehColaborador = false;
 
     protected override async Task OnInitializedAsync()
     {
+        ThemeService.OnThemeChanged += HandleThemeChanged;
         usuarioLogado = await AuthService.ObterUsuarioLogadoAsync();
+        ehColaborador = await ValidadeService.UsuarioAtualEhColaboradorAsync();
         AuthService.OnAuthStateChanged += HandleAuthStateChanged;
+    }
+
+    private async void HandleThemeChanged()
+    {
+        await InvokeAsync(StateHasChanged);
     }
 
     private async void HandleAuthStateChanged()
     {
         usuarioLogado = await AuthService.ObterUsuarioLogadoAsync();
+        ehColaborador = await ValidadeService.UsuarioAtualEhColaboradorAsync();
         await InvokeAsync(StateHasChanged);
     }
 
@@ -109,6 +264,16 @@
     private void CollapseMenuOnMobile()
     {
         collapseNavMenu = true;
+    }
+
+    private async Task DefinirTema(string tema)
+    {
+        await ThemeService.DefinirTemaAsync(tema);
+    }
+
+    private async Task AlternarTema()
+    {
+        await ThemeService.AlternarTemaAsync();
     }
 
     private async Task EfetuarLogout()

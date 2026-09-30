@@ -110,7 +110,7 @@
     font-size: 0.72rem;
     text-transform: uppercase;
     font-weight: 700;
-    color: #6366f1;
+    color: #ea580c;
     letter-spacing: 0.5px;
 }
 
@@ -239,4 +239,124 @@
 
 .btn-confirmar-baixa:hover {
     background: #b91c1c;
+}
+
+@media (max-width: 480px) {
+    .modal-dialog-custom {
+        max-width: calc(100vw - 24px);
+        border-radius: 16px;
+    }
+
+    .modal-header-custom {
+        padding: 14px 16px;
+    }
+
+    .modal-body-custom {
+        padding: 14px 16px;
+    }
+
+    .motivos-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .modal-footer-custom {
+        flex-direction: column-reverse;
+        gap: 8px;
+        padding: 12px 16px;
+    }
+
+    .btn-cancelar, .btn-confirmar-baixa {
+        width: 100%;
+        justify-content: center;
+        text-align: center;
+    }
+}
+
+/* ==========================================================================
+   TEMA ESCURO - MODAL BAIXA
+   ========================================================================== */
+:root[data-theme="dark"] .modal-dialog-custom {
+    background: #131b2e !important;
+    border: 1px solid #243048 !important;
+    color: #f8fafc !important;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7) !important;
+}
+
+:root[data-theme="dark"] .modal-header-custom {
+    border-bottom-color: #243048 !important;
+}
+
+:root[data-theme="dark"] .modal-title-custom {
+    color: #ffffff !important;
+}
+
+:root[data-theme="dark"] .modal-subtitle-custom {
+    color: #cbd5e1 !important;
+}
+
+:root[data-theme="dark"] .item-summary-card,
+:root[data-theme="dark"] .info-produto-box {
+    background: #090d16 !important;
+    border-color: #243048 !important;
+}
+
+:root[data-theme="dark"] .summary-store {
+    color: #fb923c !important;
+}
+
+:root[data-theme="dark"] .summary-name,
+:root[data-theme="dark"] .prod-destaque-nome {
+    color: #ffffff !important;
+}
+
+:root[data-theme="dark"] .summary-details,
+:root[data-theme="dark"] .prod-destaque-detalhe,
+:root[data-theme="dark"] .campo-label {
+    color: #cbd5e1 !important;
+}
+
+:root[data-theme="dark"] .input-qtd-custom,
+:root[data-theme="dark"] .textarea-obs-custom {
+    background: #090d16 !important;
+    border-color: #243048 !important;
+    color: #f8fafc !important;
+}
+
+:root[data-theme="dark"] .input-qtd-custom:focus,
+:root[data-theme="dark"] .textarea-obs-custom:focus {
+    border-color: #f97316 !important;
+    box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.2) !important;
+}
+
+:root[data-theme="dark"] .btn-motivo {
+    background: #090d16 !important;
+    border-color: #243048 !important;
+    color: #cbd5e1 !important;
+}
+
+:root[data-theme="dark"] .btn-motivo:hover {
+    background: #1c273e !important;
+    border-color: #f97316 !important;
+}
+
+:root[data-theme="dark"] .btn-motivo.motivo-selected {
+    background: rgba(249, 115, 22, 0.2) !important;
+    border-color: #f97316 !important;
+    color: #ffedd5 !important;
+}
+
+:root[data-theme="dark"] .modal-footer-custom {
+    border-top-color: #243048 !important;
+    background: #131b2e !important;
+}
+
+:root[data-theme="dark"] .btn-cancelar {
+    background: #090d16 !important;
+    border-color: #243048 !important;
+    color: #cbd5e1 !important;
+}
+
+:root[data-theme="dark"] .btn-cancelar:hover {
+    background: #1c273e !important;
+    color: #ffffff !important;
 }

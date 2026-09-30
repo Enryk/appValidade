@@ -45,7 +45,7 @@
             <p style="color: #64748b; font-size: 0.95rem; max-width: 480px; margin: 0 auto 20px auto; line-height: 1.5;">
                 Para importar produtos e validades de uma planilha, é necessário ter ao menos uma loja cadastrada como destino.
             </p>
-            <a href="lojas" style="display: inline-block; background: #6366f1; color: #fff; text-decoration: none; padding: 12px 24px; border-radius: 10px; font-weight: 700; font-size: 0.95rem;">
+            <a href="lojas" style="display: inline-block; background: linear-gradient(135deg, #ff7a18 0%, #ea580c 100%); color: #fff; text-decoration: none; padding: 12px 24px; border-radius: 10px; font-weight: 700; font-size: 0.95rem; box-shadow: 0 4px 12px rgba(234, 88, 12, 0.25);">
                 🏬 Cadastrar Minha Primeira Loja
             </a>
         </div>
@@ -80,23 +80,51 @@
     @* Área de Upload de Arquivo *@
     <div class="upload-section">
         <label class="upload-dropzone @(processandoArquivo ? "uploading" : "")">
-            <InputFile OnChange="OnArquivoSelecionado" accept=".xlsx,.csv" class="input-file-hidden" disabled="@processandoArquivo" />
-            <span class="upload-icon">📂</span>
+            <InputFile OnChange="OnArquivoSelecionado" 
+                       accept=".xlsx,.csv" 
+                       class="input-file-hidden" 
+                       style="position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; z-index: 10;" 
+                       disabled="@processandoArquivo" />
+            
+            <div class="upload-icon-wrapper">
+                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#ea580c" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="17 8 12 3 7 8"></polyline>
+                    <line x1="12" y1="3" x2="12" y2="15"></line>
+                </svg>
+            </div>
+
             <div class="upload-text">
                 @if (processandoArquivo)
                 {
-                    <strong>Processando e lendo planilha...</strong>
-                    <span class="upload-sub">Aguarde enquanto os dados são analisados</span>
+                    <strong class="upload-title">Processando e lendo planilha...</strong>
+                    <span class="upload-sub">Aguarde enquanto os dados estão sendo analisados</span>
                 }
                 else if (!string.IsNullOrEmpty(nomeArquivoCarregado))
                 {
-                    <strong class="file-loaded-name">📄 @nomeArquivoCarregado</strong>
-                    <span class="upload-sub">Clique para escolher outro arquivo se desejar</span>
+                    <div class="file-loaded-pill">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                            <polyline points="14 2 14 8 20 8"></polyline>
+                            <line x1="16" y1="13" x2="8" y2="13"></line>
+                            <line x1="16" y1="17" x2="8" y2="17"></line>
+                        </svg>
+                        <strong>@nomeArquivoCarregado</strong>
+                    </div>
+                    <span class="upload-sub" style="margin-top: 6px;">Clique nesta área se desejar selecionar outro arquivo</span>
                 }
                 else
                 {
-                    <strong>Clique aqui para selecionar o arquivo Excel (.xlsx) ou .csv</strong>
-                    <span class="upload-sub">Formatos aceitos: Microsoft Excel (.xlsx) ou CSV delimitado</span>
+                    <strong class="upload-title">Clique para selecionar o arquivo Excel (.xlsx) ou .csv</strong>
+                    <div class="btn-fake-upload">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="17 8 12 3 7 8"></polyline>
+                            <line x1="12" y1="3" x2="12" y2="15"></line>
+                        </svg>
+                        <span>Escolher Arquivo do Computador</span>
+                    </div>
+                    <span class="upload-sub">Formatos suportados: Microsoft Excel (.xlsx, .xls) ou CSV delimitado</span>
                 }
             </div>
         </label>
@@ -239,6 +267,12 @@
 
     protected override async Task OnInitializedAsync()
     {
+        if (await ValidadeService.UsuarioAtualEhColaboradorAsync())
+        {
+            NavigationManager.NavigateTo("/", forceLoad: false);
+            return;
+        }
+
         await ValidadeService.InicializarBancoESeedAsync();
         lojas = await ValidadeService.GetLojasAsync();
 
