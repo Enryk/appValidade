@@ -316,6 +316,10 @@
                         <span class="corner-bl"></span>
                         <span class="corner-br"></span>
                     </div>
+                    @if (!string.IsNullOrEmpty(statusScannerCamera))
+                    {
+                        <div class="scanner-status-overlay">@statusScannerCamera</div>
+                    }
                 </div>
 
                 <div class="camera-footer">
@@ -566,16 +570,20 @@
     }
 
     // Leitor de Código de Barras por Câmera
+    private string? statusScannerCamera;
+
     private async Task AbrirScannerCamera()
     {
         exibirModalCamera = true;
-        await Task.Delay(100);
+        statusScannerCamera = "Iniciando câmera...";
+        await Task.Delay(250);
         try
         {
             await JSRuntime.InvokeVoidAsync("validataScanner.iniciar", dotNetHelper, "cameraScannerContainer");
         }
         catch (Exception ex)
         {
+            statusScannerCamera = "Erro: " + ex.Message;
             Console.WriteLine($"Erro ao abrir scanner de câmera: {ex.Message}");
         }
     }
@@ -583,11 +591,19 @@
     private async Task FecharScannerCamera()
     {
         exibirModalCamera = false;
+        statusScannerCamera = null;
         try
         {
             await JSRuntime.InvokeVoidAsync("validataScanner.parar");
         }
         catch {}
+    }
+
+    [JSInvokable]
+    public void OnScannerStatus(string status)
+    {
+        statusScannerCamera = status;
+        StateHasChanged();
     }
 
     [JSInvokable]
