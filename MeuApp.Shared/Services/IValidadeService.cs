@@ -24,12 +24,14 @@ public interface IValidadeService
 
     // Coleta e Produtos (Catálogo por Conta)
     Task<Produto?> BuscarProdutoPorCodigoBarrasAsync(string codigoBarras, int? contaId = null);
+    Task<List<Produto>> BuscarProdutosPorTermoAsync(string termo, int limite = 10, int? contaId = null);
     Task<List<RegistroValidade>> GetValidadesAtivasDoProdutoNaLojaAsync(int produtoId, int lojaId, int? contaId = null);
     Task<Produto> CadastrarProdutoComValidadeAsync(int lojaId, string codigoBarras, string nome, DateTime dataValidade, bool emPromocao, int? contaId = null);
     Task<Produto> CadastrarProdutoComValidadeMultiplasLojasAsync(IEnumerable<int> lojasIds, string codigoBarras, string nome, DateTime dataValidade, bool emPromocao, int? contaId = null);
     Task<RegistroValidade> AdicionarValidadeAoProdutoAsync(int produtoId, int lojaId, DateTime dataValidade, bool emPromocao, int? contaId = null);
     Task<List<RegistroValidade>> AdicionarValidadeMultiplasLojasAsync(int produtoId, IEnumerable<int> lojasIds, DateTime dataValidade, bool emPromocao, int? contaId = null);
     Task AtualizarNomeProdutoAsync(int produtoId, string novoNome, int? contaId = null);
+    Task SalvarLoteColetasAsync(IEnumerable<ItemColetaSessao> itens, int? contaId = null);
 
     // Monitoramento
     Task<List<RegistroValidade>> GetValidadesAtivasAsync(int? lojaId, string filtroRapido, DateTime? dataInicio = null, DateTime? dataFim = null, int? contaId = null);

@@ -450,6 +450,75 @@ public class ValidadeService : IValidadeService
             .FirstOrDefaultAsync(p => p.ContaId == cid && p.CodigoBarras == codigoTratado);
     }
 
+    public async Task<List<Produto>> BuscarProdutosPorTermoAsync(string termo, int limite = 10, int? contaId = null)
+    {
+        var cid = await ResolverContaIdAsync(contaId);
+        await using var context = await _contextFactory.CreateDbContextAsync();
+        var t = (termo ?? string.Empty).Trim();
+        if (string.IsNullOrWhiteSpace(t)) return new List<Produto>();
+
+        return await context.Produtos
+            .AsNoTracking()
+            .Include(p => p.Validades.Where(v => v.Status == "Ativo" && v.ContaId == cid))
+                .ThenInclude(v => v.Loja)
+            .Where(p => p.ContaId == cid && (p.CodigoBarras.Contains(t) || p.Nome.ToLower().Contains(t.ToLower())))
+            .OrderBy(p => p.CodigoBarras.StartsWith(t) ? 0 : 1)
+            .ThenBy(p => p.Nome)
+            .Take(limite)
+            .ToListAsync();
+    }
+
+    public async Task SalvarLoteColetasAsync(IEnumerable<ItemColetaSessao> itens, int? contaId = null)
+    {
+        var lista = itens?.ToList() ?? new List<ItemColetaSessao>();
+        if (!lista.Any()) return;
+
+        var cid = await ResolverContaIdAsync(contaId);
+        await using var context = await _contextFactory.CreateDbContextAsync();
+
+        foreach (var item in lista)
+        {
+            var codigoTratado = item.CodigoBarras.Trim();
+            Produto? produto = null;
+
+            if (item.ProdutoId.HasValue && item.ProdutoId.Value > 0)
+            {
+                produto = await context.Produtos.FirstOrDefaultAsync(p => p.ContaId == cid && p.Id == item.ProdutoId.Value);
+            }
+
+            if (produto == null)
+            {
+                produto = await context.Produtos.FirstOrDefaultAsync(p => p.ContaId == cid && p.CodigoBarras == codigoTratado);
+            }
+
+            if (produto == null)
+            {
+                produto = new Produto
+                {
+                    ContaId = cid,
+                    CodigoBarras = codigoTratado,
+                    Nome = !string.IsNullOrWhiteSpace(item.NomeProduto) ? item.NomeProduto.Trim() : "Produto Sem Nome"
+                };
+                context.Produtos.Add(produto);
+                await context.SaveChangesAsync();
+            }
+
+            var novoRegistro = new RegistroValidade
+            {
+                ContaId = cid,
+                LojaId = item.LojaId,
+                ProdutoId = produto.Id,
+                DataValidade = item.DataValidade,
+                EmPromocao = item.EmPromocao,
+                DataColeta = DateTime.Now,
+                Status = "Ativo"
+            };
+            context.RegistrosValidade.Add(novoRegistro);
+        }
+
+        await context.SaveChangesAsync();
+    }
+
     public async Task<List<RegistroValidade>> GetValidadesAtivasDoProdutoNaLojaAsync(int produtoId, int lojaId, int? contaId = null)
     {
         var cid = await ResolverContaIdAsync(contaId);
