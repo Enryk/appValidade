@@ -57,7 +57,17 @@ else if (autenticado)
     {
         ThemeService.OnThemeChanged += HandleThemeChanged;
         AuthService.OnAuthStateChanged += HandleAuthStateChanged;
-        await VerificarAutenticacao();
+
+        var usuario = await AuthService.ObterUsuarioLogadoAsync();
+        if (usuario != null)
+        {
+            autenticado = true;
+            verificandoAuth = false;
+        }
+        else
+        {
+            verificandoAuth = true;
+        }
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -65,6 +75,10 @@ else if (autenticado)
         if (firstRender)
         {
             await ThemeService.InicializarTemaAsync();
+            if (!autenticado)
+            {
+                await VerificarAutenticacao();
+            }
         }
     }
 

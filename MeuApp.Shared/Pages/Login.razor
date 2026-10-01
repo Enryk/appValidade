@@ -181,6 +181,18 @@
         }
     }
 
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && !modoPrimeiroAcesso)
+        {
+            var usuario = await AuthService.ObterUsuarioLogadoAsync();
+            if (usuario != null)
+            {
+                Navigation.NavigateTo("/");
+            }
+        }
+    }
+
     private async Task EfetuarLogin()
     {
         mensagemErro = null;
@@ -202,7 +214,7 @@
                     return;
                 }
 
-                Navigation.NavigateTo("/", forceLoad: true);
+                Navigation.NavigateTo("/");
             }
             else
             {
@@ -251,7 +263,7 @@
             var res = await AuthService.DefinirNovaSenhaPrimeiroAcessoAsync(usuarioPrimeiroAcesso.Id, novaSenhaPrimeiroAcesso);
             if (res.Sucesso)
             {
-                Navigation.NavigateTo("/", forceLoad: true);
+                Navigation.NavigateTo("/");
             }
             else
             {

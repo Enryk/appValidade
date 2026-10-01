@@ -5,7 +5,9 @@ using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.JSInterop;
 using MeuApp.Shared.Data;
 using MeuApp.Shared.Models;
 
@@ -13,9 +15,13 @@ namespace MeuApp.Shared.Services;
 
 public class AuthService : IAuthService
 {
+    private static readonly byte[] TokenSecretKey = SHA256.HashData(
+        Encoding.UTF8.GetBytes("ValiData_Web_Secret_Auth_Key_2026_Secure_Token_HMAC_Salt"));
+
     private readonly IDbContextFactory<AppDbContext> _dbFactory;
     private readonly IEmailService _emailService;
     private readonly ILogger<AuthService> _logger;
+    private readonly IJSRuntime? _jsRuntime;
     private Usuario? _usuarioLogado;
     private readonly string _sessionFilePath;
     private readonly bool _isDesktopEnvironment;
@@ -25,11 +31,21 @@ public class AuthService : IAuthService
     public AuthService(
         IDbContextFactory<AppDbContext> dbFactory,
         IEmailService emailService,
-        ILogger<AuthService> logger)
+        ILogger<AuthService> logger,
+        IServiceProvider? serviceProvider = null)
     {
         _dbFactory = dbFactory;
         _emailService = emailService;
         _logger = logger;
+
+        try
+        {
+            _jsRuntime = serviceProvider?.GetService<IJSRuntime>();
+        }
+        catch
+        {
+            _jsRuntime = null;
+        }
 
         _isDesktopEnvironment = !AppDomain.CurrentDomain.FriendlyName.Contains("MeuApp.Web", StringComparison.OrdinalIgnoreCase)
                                 && string.IsNullOrEmpty(Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT"));
@@ -52,31 +68,72 @@ public class AuthService : IAuthService
         if (_usuarioLogado != null)
             return _usuarioLogado;
 
-        if (!_isDesktopEnvironment || string.IsNullOrEmpty(_sessionFilePath))
-            return null;
-
-        try
+        if (_isDesktopEnvironment && !string.IsNullOrEmpty(_sessionFilePath))
         {
-            if (File.Exists(_sessionFilePath))
+            try
             {
-                var json = await File.ReadAllTextAsync(_sessionFilePath);
-                var sessao = JsonSerializer.Deserialize<SessaoPersistida>(json);
-                if (sessao != null && sessao.UsuarioId > 0)
+                if (File.Exists(_sessionFilePath))
                 {
-                    await using var db = await _dbFactory.CreateDbContextAsync();
-                    var usuario = await db.Usuarios.FirstOrDefaultAsync(u => u.Id == sessao.UsuarioId && u.Ativo);
-                    if (usuario != null)
+                    var json = await File.ReadAllTextAsync(_sessionFilePath);
+                    var sessao = JsonSerializer.Deserialize<SessaoPersistida>(json);
+                    if (sessao != null && sessao.UsuarioId > 0)
                     {
-                        await GarantirContaDoUsuarioAsync(db, usuario);
-                        _usuarioLogado = usuario;
-                        return _usuarioLogado;
+                        await using var db = await _dbFactory.CreateDbContextAsync();
+                        var usuario = await db.Usuarios.FirstOrDefaultAsync(u => u.Id == sessao.UsuarioId && u.Ativo);
+                        if (usuario != null)
+                        {
+                            await GarantirContaDoUsuarioAsync(db, usuario);
+                            _usuarioLogado = usuario;
+                            return _usuarioLogado;
+                        }
                     }
                 }
             }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Erro ao recuperar sessão persistida do usuário.");
+            }
         }
-        catch (Exception ex)
+        else if (_jsRuntime != null)
         {
-            _logger.LogError(ex, "Erro ao recuperar sessão persistida do usuário.");
+            try
+            {
+                string? token = null;
+                try
+                {
+                    token = await _jsRuntime.InvokeAsync<string?>("validataAuth.getToken");
+                }
+                catch
+                {
+                    token = await _jsRuntime.InvokeAsync<string?>("localStorage.getItem", "validata_auth_token");
+                }
+
+                if (!string.IsNullOrWhiteSpace(token))
+                {
+                    if (ValidarFormatoETempoToken(token, out int usuarioId, out long timestamp, out string assinatura))
+                    {
+                        await using var db = await _dbFactory.CreateDbContextAsync();
+                        var usuario = await db.Usuarios.FirstOrDefaultAsync(u => u.Id == usuarioId && u.Ativo);
+                        if (usuario != null && usuario.EmailConfirmado)
+                        {
+                            if (ValidarAssinaturaToken(usuarioId, timestamp, usuario.SenhaSalt, assinatura))
+                            {
+                                await GarantirContaDoUsuarioAsync(db, usuario);
+                                _usuarioLogado = usuario;
+                                return _usuarioLogado;
+                            }
+                        }
+                    }
+                }
+            }
+            catch (InvalidOperationException)
+            {
+                // Silencioso se chamado durante SSR/prerender antes do circuito SignalR
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Erro ao ler token de autenticação do navegador.");
+            }
         }
 
         return null;
@@ -157,7 +214,7 @@ public class AuthService : IAuthService
             await db.SaveChangesAsync();
 
             _usuarioLogado = usuario;
-            await SalvarSessaoAsync(usuario.Id);
+            await SalvarSessaoAsync(usuario);
             OnAuthStateChanged?.Invoke();
 
             return ResultadoAuth.Ok(usuario, $"Bem-vindo de volta, {usuario.Nome}!");
@@ -368,7 +425,7 @@ public class AuthService : IAuthService
             await db.SaveChangesAsync();
 
             _usuarioLogado = usuario;
-            await SalvarSessaoAsync(usuario.Id);
+            await SalvarSessaoAsync(usuario);
             OnAuthStateChanged?.Invoke();
 
             return ResultadoAuth.Ok(usuario, "Sua conta foi ativada e sua senha foi definida com sucesso!");
@@ -643,6 +700,25 @@ public class AuthService : IAuthService
             }
         }
 
+        if (_jsRuntime != null)
+        {
+            try
+            {
+                try
+                {
+                    await _jsRuntime.InvokeVoidAsync("validataAuth.removeToken");
+                }
+                catch
+                {
+                    await _jsRuntime.InvokeVoidAsync("localStorage.removeItem", "validata_auth_token");
+                }
+            }
+            catch
+            {
+                // Tratamento defensivo
+            }
+        }
+
         OnAuthStateChanged?.Invoke();
         await Task.CompletedTask;
     }
@@ -758,7 +834,7 @@ public class AuthService : IAuthService
             await db.SaveChangesAsync();
 
             _usuarioLogado = usuario;
-            await SalvarSessaoAsync(usuario.Id);
+            await SalvarSessaoAsync(usuario);
             OnAuthStateChanged?.Invoke();
 
             return ResultadoAuth.Ok(usuario, "Nova senha cadastrada com sucesso!");
@@ -770,20 +846,98 @@ public class AuthService : IAuthService
         }
     }
 
-    private async Task SalvarSessaoAsync(int usuarioId)
+    private async Task SalvarSessaoAsync(Usuario usuario)
     {
-        if (!_isDesktopEnvironment || string.IsNullOrEmpty(_sessionFilePath))
-            return;
+        if (_isDesktopEnvironment && !string.IsNullOrEmpty(_sessionFilePath))
+        {
+            try
+            {
+                var sessao = new SessaoPersistida { UsuarioId = usuario.Id, DataLogin = DateTime.Now };
+                var json = JsonSerializer.Serialize(sessao);
+                await File.WriteAllTextAsync(_sessionFilePath, json);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Não foi possível persistir a sessão em disco.");
+            }
+        }
 
+        if (_jsRuntime != null)
+        {
+            try
+            {
+                var token = GerarTokenSessao(usuario.Id, usuario.SenhaSalt);
+                try
+                {
+                    await _jsRuntime.InvokeVoidAsync("validataAuth.setToken", token);
+                }
+                catch
+                {
+                    await _jsRuntime.InvokeVoidAsync("localStorage.setItem", "validata_auth_token", token);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Não foi possível persistir o token de sessão no navegador.");
+            }
+        }
+    }
+
+    private static string GerarTokenSessao(int usuarioId, string senhaSalt)
+    {
+        long timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        var payloadBytes = Encoding.UTF8.GetBytes($"VALIDATA:{usuarioId}:{timestamp}:{senhaSalt}");
+        using var hmac = new HMACSHA256(TokenSecretKey);
+        var hash = hmac.ComputeHash(payloadBytes);
+        var hashBase64 = Convert.ToBase64String(hash);
+        return $"{usuarioId}.{timestamp}.{hashBase64}";
+    }
+
+    private static bool ValidarFormatoETempoToken(string token, out int usuarioId, out long timestamp, out string assinatura)
+    {
+        usuarioId = 0;
+        timestamp = 0;
+        assinatura = string.Empty;
+
+        if (string.IsNullOrWhiteSpace(token))
+            return false;
+
+        var partes = token.Split('.');
+        if (partes.Length != 3)
+            return false;
+
+        if (!int.TryParse(partes[0], out usuarioId) || usuarioId <= 0)
+            return false;
+
+        if (!long.TryParse(partes[1], out timestamp))
+            return false;
+
+        // Expiração de 30 dias
+        var tokenDate = DateTimeOffset.FromUnixTimeSeconds(timestamp);
+        if (DateTimeOffset.UtcNow - tokenDate > TimeSpan.FromDays(30) || tokenDate > DateTimeOffset.UtcNow.AddMinutes(5))
+            return false;
+
+        assinatura = partes[2];
+        return !string.IsNullOrWhiteSpace(assinatura);
+    }
+
+    private static bool ValidarAssinaturaToken(int usuarioId, long timestamp, string senhaSalt, string assinaturaRecebida)
+    {
         try
         {
-            var sessao = new SessaoPersistida { UsuarioId = usuarioId, DataLogin = DateTime.Now };
-            var json = JsonSerializer.Serialize(sessao);
-            await File.WriteAllTextAsync(_sessionFilePath, json);
+            var payloadBytes = Encoding.UTF8.GetBytes($"VALIDATA:{usuarioId}:{timestamp}:{senhaSalt}");
+            using var hmac = new HMACSHA256(TokenSecretKey);
+            var hashEsperado = hmac.ComputeHash(payloadBytes);
+
+            var recebidoBytes = Convert.FromBase64String(assinaturaRecebida);
+            if (recebidoBytes.Length != hashEsperado.Length)
+                return false;
+
+            return CryptographicOperations.FixedTimeEquals(hashEsperado, recebidoBytes);
         }
-        catch (Exception ex)
+        catch
         {
-            _logger.LogWarning(ex, "Não foi possível persistir a sessão em disco.");
+            return false;
         }
     }
 

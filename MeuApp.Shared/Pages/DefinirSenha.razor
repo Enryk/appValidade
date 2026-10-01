@@ -38,7 +38,7 @@
             </p>
         </div>
         <div style="text-align: center; margin-top: 20px;">
-            <button type="button" class="btn-auth-primary" @onclick='() => Navigation.NavigateTo("/", forceLoad: true)'>
+            <button type="button" class="btn-auth-primary" @onclick='() => Navigation.NavigateTo("/")'>
                 Entrar no ValiData Agora →
             </button>
         </div>
@@ -231,7 +231,7 @@
                 _ = Task.Run(async () =>
                 {
                     await Task.Delay(2000);
-                    Navigation.NavigateTo("/", forceLoad: true);
+                    Navigation.NavigateTo("/");
                 });
             }
             else
