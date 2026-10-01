@@ -198,6 +198,9 @@
     padding: 3px 8px;
     border-radius: 6px;
     text-transform: uppercase;
+    white-space: nowrap;
+    display: inline-block;
+    letter-spacing: 0.3px;
 }
 
 .chip-codigo {

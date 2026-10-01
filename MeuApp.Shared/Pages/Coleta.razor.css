@@ -1,7 +1,11 @@
 .coleta-page {
     max-width: 1000px;
+    width: 100%;
+    min-width: 0;
     margin: 0 auto;
     padding: 16px 20px 40px 20px;
+    box-sizing: border-box;
+    overflow-x: hidden;
 }
 
 .coleta-header {
@@ -60,6 +64,10 @@
     padding: 20px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
     margin-bottom: 24px;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
 }
 
 .scanner-form {
@@ -67,6 +75,8 @@
     align-items: center;
     gap: 10px;
     width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
 }
 
 .scanner-input-wrapper {
@@ -190,8 +200,14 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
     margin-bottom: 20px;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
 }
 
 .badge-row {
@@ -249,6 +265,10 @@
     border-radius: 16px;
     padding: 20px;
     margin-bottom: 20px;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
 }
 
 .section-title {
@@ -260,6 +280,12 @@
 
 .tabela-responsive-wrapper {
     overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    display: block;
+    box-sizing: border-box;
 }
 
 .tabela-lotes {
@@ -609,14 +635,17 @@
     background: #c2410c;
     transform: translateY(-1px);
 }
-}
 
 /* ========================================================
-   RESPONSIVIDADE COMPLETA: TELAS PEQUENAS E MOBILE (< 680px)
+   RESPONSIVIDADE COMPLETA: TELAS PEQUENAS E MOBILE (< 768px)
    ======================================================== */
-@media (max-width: 680px) {
+@media (max-width: 767.98px) {
     .coleta-page {
-        padding: 12px 12px 32px 12px;
+        padding: 12px 10px 32px 10px;
+        width: 100%;
+        max-width: 100%;
+        box-sizing: border-box;
+        overflow-x: hidden;
     }
 
     .page-title {
@@ -627,6 +656,7 @@
         flex-direction: column;
         align-items: stretch;
         gap: 12px;
+        width: 100%;
     }
 
     .store-selector-box {
@@ -636,23 +666,31 @@
 
     .form-select-custom {
         width: 100%;
+        max-width: 100%;
+        box-sizing: border-box;
     }
 
     .scanner-card, .section-box, .form-cadastro-card {
-        padding: 16px 14px;
+        padding: 14px 12px;
         border-radius: 14px;
         margin-bottom: 16px;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        box-sizing: border-box;
     }
 
     .scanner-form {
         flex-direction: column;
         align-items: stretch;
         gap: 10px;
+        width: 100%;
     }
 
     .scanner-input-wrapper {
         width: 100%;
         padding: 6px 12px;
+        box-sizing: border-box;
     }
 
     .btn-buscar {
@@ -665,7 +703,11 @@
         flex-direction: column;
         align-items: flex-start;
         gap: 12px;
-        padding: 16px;
+        padding: 14px 12px;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        box-sizing: border-box;
     }
 
     .lotes-count-badge {
@@ -679,14 +721,17 @@
 
     .tabela-responsive-wrapper {
         width: 100%;
+        max-width: 100%;
+        min-width: 0;
         overflow-x: auto;
         -webkit-overflow-scrolling: touch;
-        margin: 0 -4px;
+        margin: 0;
         padding-bottom: 4px;
+        box-sizing: border-box;
     }
 
     .tabela-lotes {
-        min-width: 520px;
+        min-width: 480px;
     }
 
     .form-novo-lote .form-input {

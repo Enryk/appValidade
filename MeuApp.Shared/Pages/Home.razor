@@ -230,7 +230,7 @@
                                 </td>
                                 <td class="col-td-loja">
                                     <span class="loja-chip" title="@(item.Loja?.Nome ?? "Loja")">
-                                        @ObterNomeLojaReduzido(item.Loja?.Nome)
+                                        @ObterNomeLojaReduzido(item.Loja)
                                     </span>
                                 </td>
                                 <td class="col-td-codigo">
@@ -346,7 +346,7 @@
                                            checked="@itensSelecionadosIds.Contains(itemAtivo.Id)" 
                                            @onchange="(e) => ToggleItemSelecionado(itemAtivo.Id, (bool)(e.Value ?? false))" />
                                     <span class="loja-chip" title="@(grupo.Loja?.Nome ?? "Loja")">
-                                        @ObterNomeLojaReduzido(grupo.Loja?.Nome)
+                                        @ObterNomeLojaReduzido(grupo.Loja)
                                     </span>
                                 </div>
                                 <div class="card-topo-badges">
@@ -601,6 +601,13 @@
     {
         modoVisualizacao = modo;
         paginaAtual = 1;
+    }
+
+    private string ObterNomeLojaReduzido(Loja? loja)
+    {
+        if (loja == null) return "Loja";
+        if (!string.IsNullOrWhiteSpace(loja.CodigoLoja)) return loja.CodigoLoja;
+        return ObterNomeLojaReduzido(loja.Nome);
     }
 
     private string ObterNomeLojaReduzido(string? nome)

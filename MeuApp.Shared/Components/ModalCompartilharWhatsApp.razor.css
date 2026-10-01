@@ -4,6 +4,7 @@
     left: 0;
     width: 100vw;
     height: 100vh;
+    height: 100dvh;
     background-color: rgba(15, 23, 42, 0.65);
     backdrop-filter: blur(4px);
     display: flex;
@@ -11,6 +12,7 @@
     justify-content: center;
     z-index: 1050;
     padding: 16px;
+    box-sizing: border-box;
     animation: fadeIn 0.2s ease-out;
 }
 
@@ -19,12 +21,14 @@
     border-radius: 20px;
     width: 100%;
     max-width: 580px;
-    max-height: 90vh;
+    max-height: calc(100vh - 32px);
+    max-height: calc(100dvh - 32px);
     display: flex;
     flex-direction: column;
     box-shadow: 0 20px 35px -10px rgba(0, 0, 0, 0.25);
     animation: slideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
     overflow: hidden;
+    margin: auto;
 }
 
 @keyframes fadeIn {
@@ -44,6 +48,7 @@
     border-bottom: 1px solid #e2e8f0;
     gap: 14px;
     background: #f8fafc;
+    flex-shrink: 0;
 }
 
 .modal-header-whatsapp {
@@ -109,6 +114,9 @@
 .modal-body-custom {
     padding: 20px 24px;
     overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    flex: 1 1 auto;
+    min-height: 0;
     display: flex;
     flex-direction: column;
     gap: 16px;
@@ -240,6 +248,7 @@
 
 /* Rodapé */
 .modal-footer-custom {
+    flex-shrink: 0;
     padding: 16px 24px;
     border-top: 1px solid #e2e8f0;
     background: #f8fafc;
@@ -318,32 +327,96 @@
 
 /* Responsividade Mobile */
 @media (max-width: 600px) {
+    .modal-backdrop-custom {
+        padding: 10px 8px;
+        align-items: flex-end;
+    }
+
     .modal-dialog-custom {
-        max-height: 95vh;
-        border-radius: 16px;
+        max-height: calc(100dvh - 20px);
+        max-height: calc(100vh - 20px);
+        border-radius: 18px 18px 12px 12px;
+        width: 100%;
+        margin-bottom: 0;
     }
 
     .modal-header-custom {
-        padding: 14px 16px;
+        padding: 12px 14px;
+        gap: 10px;
+    }
+
+    .header-icon-wrapper {
+        width: 36px;
+        height: 36px;
+    }
+
+    .header-icon {
+        font-size: 1.15rem;
+    }
+
+    .modal-title-custom {
+        font-size: 1.05rem;
+    }
+
+    .modal-subtitle-custom {
+        font-size: 0.75rem;
     }
 
     .modal-body-custom {
-        padding: 14px 16px;
+        padding: 12px 14px;
         gap: 12px;
     }
 
     .formato-opcoes-grid {
         grid-template-columns: 1fr;
+        gap: 8px;
+    }
+
+    .btn-formato-opcao {
+        padding: 10px;
+    }
+
+    .textarea-mensagem-whatsapp {
+        max-height: 140px;
+        min-height: 85px;
+        font-size: 0.8rem;
+        padding: 8px 10px;
     }
 
     .modal-footer-custom {
-        padding: 12px 16px;
-        flex-direction: column;
-        align-items: stretch;
+        padding: 10px 12px;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
     }
 
-    .btn-enviar-whatsapp, .btn-copiar-texto, .btn-cancelar-custom {
+    .btn-enviar-whatsapp {
+        grid-column: 1 / -1;
         width: 100%;
         justify-content: center;
+        min-height: 40px;
+        order: 1;
+        font-size: 0.88rem;
+        padding: 8px 14px;
+    }
+
+    .btn-copiar-texto {
+        grid-column: 1 / 2;
+        width: 100%;
+        justify-content: center;
+        min-height: 38px;
+        order: 2;
+        font-size: 0.82rem;
+        padding: 6px 10px;
+    }
+
+    .btn-cancelar-custom {
+        grid-column: 2 / 3;
+        width: 100%;
+        justify-content: center;
+        min-height: 38px;
+        order: 3;
+        font-size: 0.82rem;
+        padding: 6px 10px;
     }
 }

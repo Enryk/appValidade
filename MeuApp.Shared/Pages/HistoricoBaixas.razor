@@ -111,7 +111,7 @@
                         {
                             <tr>
                                 <td>
-                                    <span class="chip-loja">@(reg.Loja?.Nome ?? "Loja")</span>
+                                    <span class="chip-loja" title="@(reg.Loja?.Nome ?? "Loja")">@(!string.IsNullOrWhiteSpace(reg.Loja?.CodigoLoja) ? reg.Loja.CodigoLoja : (reg.Loja?.Nome ?? "Loja"))</span>
                                 </td>
                                 <td>
                                     <code class="chip-codigo">@(reg.Produto?.CodigoBarras ?? "-")</code>
