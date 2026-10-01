@@ -308,8 +308,7 @@
                 </div>
 
                 <div class="camera-viewport-box">
-                    <video id="cameraVideo" playsinline autoplay muted></video>
-                    <div id="html5QrCodeReader"></div>
+                    <div id="cameraScannerContainer"></div>
                     <div class="scanner-laser-line"></div>
                     <div class="scanner-aim-frame">
                         <span class="corner-tl"></span>
@@ -573,7 +572,7 @@
         await Task.Delay(100);
         try
         {
-            await JSRuntime.InvokeVoidAsync("validataScanner.iniciar", dotNetHelper, "cameraVideo", "html5QrCodeReader");
+            await JSRuntime.InvokeVoidAsync("validataScanner.iniciar", dotNetHelper, "cameraScannerContainer");
         }
         catch (Exception ex)
         {
