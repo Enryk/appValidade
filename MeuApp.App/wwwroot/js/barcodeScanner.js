@@ -186,6 +186,29 @@ window.validataScanner = {
                 }
             }
 
+            // Se nenhum leitor estiver disponível (ex: BarcodeDetector ausente e ZXing não carregado)
+            if (!nativeDetector && !zxingReader) {
+                console.warn('[ValiData Scanner] Nenhum leitor direto (BarcodeDetector ou ZXing) disponível.');
+                const Html5QrcodeClass = window.Html5Qrcode || (window.__Html5QrcodeLibrary__ && window.__Html5QrcodeLibrary__.Html5Qrcode);
+                if (Html5QrcodeClass) {
+                    setStatus('Alternando para modo alternativo...');
+                    if (stream) {
+                        try { stream.getTracks().forEach(t => t.stop()); } catch(e) {}
+                        window.validataScanner.stream = null;
+                    }
+                    container.innerHTML = '';
+                    throw new Error('FallbackToHtml5Qrcode');
+                } else {
+                    if (stream) {
+                        try { stream.getTracks().forEach(t => t.stop()); } catch(e) {}
+                        window.validataScanner.stream = null;
+                    }
+                    container.innerHTML = '';
+                    setStatus('Recarregue a página (Ctrl+F5)');
+                    return false;
+                }
+            }
+
             // Canvas em memória para amostragem dos quadros (fora do DOM)
             const canvasFull = document.createElement('canvas');
             const ctxFull = canvasFull.getContext('2d', { willReadFrequently: true });
@@ -300,6 +323,12 @@ window.validataScanner = {
 
         } catch(directErr) {
             console.warn('[ValiData Scanner] Erro no WebRTC direto, tentando Html5Qrcode:', directErr);
+            if (window.validataScanner.stream) {
+                try {
+                    window.validataScanner.stream.getTracks().forEach(t => t.stop());
+                } catch(e) {}
+                window.validataScanner.stream = null;
+            }
         }
 
         // 3. ESTRATÉGIA SECUNDÁRIA: Html5Qrcode Library (se WebRTC direto falhar)
@@ -338,7 +367,7 @@ window.validataScanner = {
             }
         }
 
-        setStatus('Erro: Câmera indisponível no dispositivo.');
+        setStatus('Recarregue a página (Ctrl+F5)');
         return false;
     },
 
